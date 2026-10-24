@@ -281,8 +281,9 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
       oc = null;
     },
 
-    // What can be picked, and what new chats start on: the saved default, else OpenCode's own, else the first one.
-    // A default that is no longer on the list (gone, or not one the picker shows) is passed over.
+    // What can be picked, and what new chats start on. The model: the saved default, else OpenCode's own, else the
+    // first one; a default that is no longer on the list (gone, or not one the picker shows) is passed over. The
+    // access: the saved default, else Ask first.
     async models(): Promise<Models> {
       const [list, fallback] = await Promise.all([client().model.list({}), client().model.default({})]);
       const models = list.data
@@ -292,7 +293,8 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
         .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.name.localeCompare(b.name));
       const listed = (id?: string | null) => !!id && models.some((m) => m.id === id);
       const first = [getSetting(db, 'defaultModel'), fallback.data && idOf(fallback.data), models[0]?.id];
-      return { models, default: first.find(listed) ?? '' };
+      const defaultAccess = (getSetting(db, 'defaultAccess') || 'ask') as Access;
+      return { models, default: first.find(listed) ?? '', defaultAccess };
     },
 
     // `body.model` must be one from models().

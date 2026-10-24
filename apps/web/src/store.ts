@@ -9,6 +9,7 @@ import {
   type NewChat,
   type NewMessage,
   type ServerEvent,
+  type Settings,
 } from '@acobot/shared';
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
 
@@ -144,6 +145,6 @@ export function useModels() {
   useEffect(() => {
     request<Models>('/api/models').then(setModels, () => {});
   }, []);
-  const setDefault = async (id: string) => setModels(await request<Models>('/api/settings', { defaultModel: id }));
+  const setDefault = async (settings: Partial<Settings>) => setModels(await request<Models>('/api/settings', settings));
   return { models, setDefault };
 }

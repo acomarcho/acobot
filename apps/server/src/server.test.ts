@@ -441,6 +441,25 @@ test('the default model is saved in settings, and only a model from the list can
   expect(((await (await fetch(base + '/api/models')).json()) as Models).default).toBe(MODEL);
 });
 
+test('the default access is saved in settings, and a chat without one starts on it', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post } = await boot(fake.oc);
+  const models = async () => (await (await fetch(base + '/api/models')).json()) as Models;
+  // Ask first until changed.
+  expect((await models()).defaultAccess).toBe('ask');
+  const res = await post('/api/settings', { defaultAccess: 'full' });
+  expect(res.body.defaultAccess).toBe('full');
+  // Saving one default leaves the other alone.
+  expect(res.body.default).toBe(MODEL);
+  expect((await models()).defaultAccess).toBe('full');
+  expect((await post('/api/settings', { defaultAccess: 'root' })).status).toBe(400);
+  const plain = await post('/api/chats', { text: 'hi', files: [], model: MODEL });
+  expect(plain.body.access).toBe('full');
+  expect(fake.calls.create[0].permissions).toEqual(RULES.full);
+  // An access sent with the chat is used instead, so a bad one is refused.
+  expect((await post('/api/chats', { text: 'hi', files: [], access: 'root' })).status).toBe(400);
+});
+
 test('a new chat uses the model picked for it, and switching later tells OpenCode and says so in the chat', async () => {
   const fake = fakeOpencode('chat');
   const { base, post } = await boot(fake.oc);

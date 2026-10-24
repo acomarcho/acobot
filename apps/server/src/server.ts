@@ -64,11 +64,12 @@ export function createApp({ db, home, uploads, web }: Deps) {
   app.post('/api/chats', async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const message = readMessage(body, known);
-    const { models, default: fallback } = await runner.models();
+    const { models, default: fallback, defaultAccess } = await runner.models();
     const model = body.model ?? fallback;
-    if (!message || !isAccess(body.access) || !models.some((m) => m.id === model))
+    const access = body.access ?? defaultAccess;
+    if (!message || !isAccess(access) || !models.some((m) => m.id === model))
       return c.json({ error: 'Needs words or files, an access mode and a model you can pick.' }, 400);
-    return c.json(await runner.create({ ...message, access: body.access, model }));
+    return c.json(await runner.create({ ...message, access, model }));
   });
 
   app.post('/api/chats/:id/messages', async (c) => {
@@ -101,12 +102,15 @@ export function createApp({ db, home, uploads, web }: Deps) {
   app.get('/api/models', async (c) => c.json(await runner.models()));
   app.get('/api/commands', async (c) => c.json(await runner.commands()));
 
+  // Saves the defaults that were sent, each of which must be one that can be picked.
   app.post('/api/settings', async (c) => {
-    const { defaultModel } = await c.req.json().catch(() => ({}));
-    const list = await runner.models();
-    if (!list.models.some((m) => m.id === defaultModel)) return c.json({ error: 'Not a model you can pick.' }, 400);
-    setSetting(db, 'defaultModel', defaultModel);
-    return c.json({ ...list, default: defaultModel });
+    const { defaultModel, defaultAccess } = await c.req.json().catch(() => ({}));
+    if (defaultModel !== undefined && !(await pickable(defaultModel)))
+      return c.json({ error: 'Not a model you can pick.' }, 400);
+    if (defaultAccess !== undefined && !isAccess(defaultAccess)) return c.json({ error: 'Not an access mode.' }, 400);
+    if (defaultModel) setSetting(db, 'defaultModel', defaultModel);
+    if (defaultAccess) setSetting(db, 'defaultAccess', defaultAccess);
+    return c.json(await runner.models());
   });
 
   app.post('/api/chats/:id/asks/:requestId', async (c) => {
