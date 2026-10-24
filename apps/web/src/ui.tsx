@@ -35,7 +35,7 @@ import {
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Streamdown } from 'streamdown';
 import { CommandMenu, suggest, useCommands } from './commands';
-import { byDay, clock, dayLabel, dayOf } from './days';
+import { byDay, clock, dayLabel, dayOf, elapsed } from './days';
 import { useApp, useModels } from './store';
 import { fileUrl, isImage, uploadFile } from './upload';
 
@@ -101,10 +101,32 @@ const when = (ms: number) => {
   return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
 
+// Ticks every second while `on`, so a timer on screen stays current.
+function useNow(on: boolean) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!on) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [on]);
+  return now;
+}
+
+// Busy chats say what they are doing and for how long, instead of the last thing said.
+const BUSY = {
+  working: { label: 'Working', text: '', dot: 'bg-ok animate-pulse' },
+  needs: { label: 'Needs you', text: 'text-warn', dot: 'bg-warn' },
+};
+
 function Preview({ chat }: { chat: Chat }) {
-  if (chat.status === 'needs') return <span className="text-warn">Waiting for you</span>;
-  if (chat.status === 'working') return <span className="animate-pulse">Working...</span>;
-  return <>{chat.preview.replace(/[*`#>]/g, '')}</>;
+  const now = useNow(chat.status !== 'idle');
+  if (chat.status === 'idle') return <>{chat.preview.replace(/[*`#>]/g, '')}</>;
+  const busy = BUSY[chat.status];
+  return (
+    <span className={`tabular-nums ${busy.text}`}>
+      {busy.label} · {elapsed(now - chat.statusAt)}
+    </span>
+  );
 }
 
 export function Row({ chat, active, onClick }: { chat: Chat; active: boolean; onClick: () => void }) {
@@ -113,7 +135,15 @@ export function Row({ chat, active, onClick }: { chat: Chat; active: boolean; on
       onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left ${active ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent/60'}`}
     >
-      <Blob seed={chat.id} />
+      <span className="relative shrink-0">
+        <Blob seed={chat.id} />
+        {chat.status !== 'idle' && (
+          <span
+            className={`absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-sidebar ${BUSY[chat.status].dot}`}
+            aria-label={BUSY[chat.status].label}
+          />
+        )}
+      </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           <span className={`min-w-0 flex-1 truncate ${chat.unread ? 'font-semibold' : 'font-medium'}`}>

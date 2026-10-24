@@ -124,7 +124,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
     const before = row(chatId);
     if (!before || before.status === status) return;
     const unread = before.unread || (status !== 'working' && !hub.watching(chatId));
-    setChat(chatId, { status, unread });
+    setChat(chatId, { status, statusAt: Date.now(), unread });
   }
 
   // One event that cannot be handled is logged and skipped. Letting it throw would drop the stream for every chat.
@@ -316,6 +316,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
           access: body.access,
           model: body.model,
           status: 'working',
+          statusAt: now,
           createdAt: now,
           updatedAt: now,
         })
