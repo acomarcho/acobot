@@ -23,6 +23,8 @@ export const chats = sqliteTable('chats', {
   access: text('access').$type<Access>().notNull(),
   model: text('model').notNull().default(''),
   status: text('status').$type<Status>().notNull(),
+  // When the status last changed, so the list can show how long a chat has been working or waiting.
+  statusAt: integer('status_at').notNull().default(0),
   unread: integer('unread', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),

@@ -15,6 +15,13 @@
       "when": 1792837456386,
       "tag": "0001_sloppy_prodigy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792857173474,
+      "tag": "0002_stale_dragon_lord",
+      "breakpoints": true
     }
   ]
 }

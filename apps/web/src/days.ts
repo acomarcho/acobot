@@ -26,3 +26,13 @@ export function dayLabel(at: number, now = Date.now()) {
   const year = date.getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric';
   return date.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year });
 }
+
+// How long something has been going on, short: 45s, 3m 05s, 2h 07m.
+export function elapsed(ms: number) {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const pad = (n: number) => String(n % 60).padStart(2, '0');
+  if (seconds < 60) return `${seconds}s`;
+  if (minutes < 60) return `${minutes}m ${pad(seconds)}s`;
+  return `${Math.floor(minutes / 60)}h ${pad(minutes)}m`;
+}

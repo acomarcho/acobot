@@ -28,6 +28,12 @@ function Home() {
     openChat(chatId);
   }, [chatId, openChat]);
 
+  // The tab says how many chats have something new or need you, so it shows from other tabs too.
+  const waiting = chats.filter((x) => x.unread || x.status === 'needs').length;
+  useEffect(() => {
+    document.title = waiting ? `(${waiting}) acobot` : 'acobot';
+  }, [waiting]);
+
   const list = chats.filter((x) => x.title.toLowerCase().includes(q.toLowerCase()));
 
   return (

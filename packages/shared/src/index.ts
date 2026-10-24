@@ -22,6 +22,8 @@ export type Chat = {
   // `provider/model`, like `opencode-go/kimi-k3.1-pro`. Empty for chats made before models could be picked.
   model: string;
   status: Status;
+  // When `status` last changed.
+  statusAt: number;
   // Something new happened since the chat was last open.
   unread: boolean;
   updatedAt: number;

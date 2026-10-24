@@ -185,6 +185,24 @@ test('a chat nobody is looking at turns unread when it finishes, and opening it 
   await until(() => b.chats.get(chat.id)?.unread === false);
 });
 
+test('a chat says when its status last changed, so the list can show how long it has been working', async () => {
+  const { base, post } = await boot(fakeOpencode('ask-allow').oc);
+  const b = await browser(base);
+  const before = Date.now();
+  const { body: chat } = await post('/api/chats', { text: 'make a note', files: [], access: 'ask', model: MODEL });
+  expect(chat.status).toBe('working');
+  expect(chat.statusAt).toBeGreaterThanOrEqual(before);
+  await b.open(chat.id);
+  await until(() => b.chats.get(chat.id)?.status === 'needs');
+  const asked = b.chats.get(chat.id)!.statusAt;
+  expect(asked).toBeGreaterThanOrEqual(chat.statusAt);
+  const card = [...b.items.values()].find((i) => i.kind === 'tool') as Extract<Item, { kind: 'tool' }>;
+  await new Promise((r) => setTimeout(r, 5));
+  await post(`/api/chats/${chat.id}/asks/${card.ask!.requestId}`, { decision: 'once' });
+  await until(() => b.chats.get(chat.id)?.status === 'idle');
+  expect(b.chats.get(chat.id)!.statusAt).toBeGreaterThan(asked);
+});
+
 test('in ask mode a command waits for an approval card, and Allow once lets it run', async () => {
   const fake = fakeOpencode('ask-allow');
   const { base, post } = await boot(fake.oc);
