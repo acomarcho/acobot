@@ -99,7 +99,7 @@ export function createApp({ db, home, uploads, web }: Deps) {
   });
 
   app.get('/api/models', async (c) => c.json(await runner.models()));
-  app.get('/api/skills', async (c) => c.json(await runner.skills()));
+  app.get('/api/commands', async (c) => c.json(await runner.commands()));
 
   app.post('/api/settings', async (c) => {
     const { defaultModel } = await c.req.json().catch(() => ({}));

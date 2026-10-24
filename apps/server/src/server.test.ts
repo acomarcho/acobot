@@ -1,4 +1,4 @@
-import type { Chat, FileRef, Item, Models, ServerEvent, Skill } from '@acobot/shared';
+import type { Chat, Command, FileRef, Item, Models, ServerEvent } from '@acobot/shared';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vite-plus/test';
@@ -22,6 +22,7 @@ const TRIGGER: Record<string, string> = {
   reply: 'reply',
   'form-reply': 'formReply',
   interrupt: 'interrupt',
+  compact: 'compact',
 };
 
 // A stand-in for OpenCode that plays a real recording back. Each client call releases the events that followed
@@ -64,6 +65,7 @@ function fakeOpencode(name: string) {
         update: async (input: any) => call('update', input),
         switchModel: async (input: any) => call('switchModel', input),
         interrupt: async (input: any) => call('interrupt', input),
+        compact: async (input: any) => call('compact', input),
         // No session is running when the server (re)connects.
         active: async () => ({}),
         instructions: {
@@ -511,14 +513,18 @@ test('when no title can be written the chat keeps its first line', async () => {
   expect((await post(`/api/chats/${chat.id}/title`, {})).body.title).toBe('say hi');
 });
 
-test('the skill list is what OpenCode finds from home, by name, without the skill contents', async () => {
+test("what / suggests is acobot's commands, then the skills OpenCode finds from home, without their contents", async () => {
   const fake = fakeOpencode('chat');
   const { base } = await boot(fake.oc);
-  const skills = (await (await fetch(base + '/api/skills')).json()) as Skill[];
-  expect(skills.map((s) => s.id)).toEqual(SKILLS.map((s) => s.id).sort((a, b) => a.localeCompare(b)));
-  expect(skills.find((s) => s.id === 'concise-mode')).toEqual({
-    id: 'concise-mode',
+  const list = (await (await fetch(base + '/api/commands')).json()) as Command[];
+  expect(list.filter((c) => !c.skill).map((c) => c.name)).toEqual(['compact']);
+  expect(list.filter((c) => c.skill).map((c) => c.name)).toEqual(
+    SKILLS.map((s) => s.id).sort((a, b) => a.localeCompare(b)),
+  );
+  expect(list.find((c) => c.name === 'concise-mode')).toEqual({
+    name: 'concise-mode',
     description: SKILLS.find((s) => s.id === 'concise-mode')!.description,
+    skill: true,
   });
   // Asked once right away, so OpenCode has them ready, then for the request.
   expect(fake.calls.skills).toEqual([
@@ -550,4 +556,19 @@ test('only a /name that starts a word and names a skill counts, once each', () =
   expect(names('line one\n/caveman')).toEqual(['/caveman']);
   for (const text of ['src/caveman', 'see https://x.com/caveman', '/usr/bin', '/caveman, ok', '/nope', 'no slash'])
     expect(names(text), text).toEqual([]);
+});
+
+test('/compact on its own sums up the chat instead of sending a message', async () => {
+  const fake = fakeOpencode('compact');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  const first = recording('compact').find((line) => line._do === 'prompt').text;
+  const { body: chat } = await post('/api/chats', { text: first, files: [], access: 'full', model: MODEL });
+  await b.open(chat.id);
+  await until(() => b.chats.get(chat.id)?.status === 'idle');
+  expect((await post(`/api/chats/${chat.id}/messages`, { text: '/compact', files: [] })).status).toBe(200);
+  await until(() => kinds(b.items).includes('notice') && b.chats.get(chat.id)?.status === 'idle');
+  expect(fake.calls.compact).toEqual([{ sessionID: fake.sessionId() }]);
+  expect(fake.calls.prompt).toHaveLength(1);
+  expect(kinds(b.items)).toEqual(['message', 'message', 'message', 'notice']);
 });

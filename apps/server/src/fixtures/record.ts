@@ -141,6 +141,17 @@ const SCENARIOS: Record<string, Scenario> = {
       await until('session.execution.succeeded')(c);
     },
   },
+  // `/compact` after a short chat: OpenCode shrinks the history into a summary.
+  compact: {
+    rules: FULL,
+    steps: async (c) => {
+      await prompt('Reply with exactly five words saying hi.')(c);
+      await until('session.execution.succeeded')(c);
+      c.log({ _do: 'compact' });
+      await c.oc.client.session.compact({ sessionID: c.sessionID });
+      await c.next(['session.compaction.ended', 'session.compaction.failed']);
+    },
+  },
   // Stopping a long command partway.
   interrupt: {
     rules: FULL,

@@ -6,7 +6,7 @@ import {
   type FileRef,
   type Item,
   type Model,
-  type Skill,
+  type Command,
 } from '@acobot/shared';
 import { code } from '@streamdown/code';
 import {
@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Streamdown } from 'streamdown';
-import { SkillMenu, suggest, useSkills } from './skills';
+import { CommandMenu, suggest, useCommands } from './commands';
 import { useApp, useModels } from './store';
 import { fileUrl, isImage, uploadFile } from './upload';
 
@@ -628,13 +628,13 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   const busy = chat !== undefined && chat.status !== 'idle';
   const uploading = uploads.some((u) => !u.ref);
   const ready = (text.trim() || uploads.length) && !uploading && !sending;
-  const skills = useSkills();
+  const commands = useCommands();
   // Where the caret was after the last change to the text, which suggestion is lit, and whether the suggestions were
   // closed since that change (with Escape, by moving the caret or by leaving the box).
   const [caret, setCaret] = useState(0);
   const [lit, setLit] = useState(0);
   const [closed, setClosed] = useState(false);
-  const menu = closed ? null : suggest(skills, text, caret);
+  const menu = closed ? null : suggest(commands, text, caret);
   const edited = () => {
     setText(ref.current!.value);
     setCaret(ref.current!.selectionStart);
@@ -642,9 +642,9 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
     setClosed(false);
   };
   // Swaps the word the caret is in for the whole name, and leaves the caret after it.
-  const pick = (skill: Skill) => {
+  const pick = (command: Command) => {
     const end = caret + text.slice(caret).search(/\s|$/);
-    ref.current!.setRangeText(`/${skill.id} `, menu!.start, end, 'end');
+    ref.current!.setRangeText(`/${command.name} `, menu!.start, end, 'end');
     // Told to the box the way typing is, so it is taken in like any other change.
     ref.current!.dispatchEvent(new Event('input', { bubbles: true }));
   };
@@ -692,7 +692,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
       }}
       className="relative rounded-[22px] border border-border bg-card p-1.5"
     >
-      {menu && <SkillMenu items={menu.items} active={lit} onActive={setLit} onPick={pick} />}
+      {menu && <CommandMenu items={menu.items} active={lit} onActive={setLit} onPick={pick} />}
       {uploads.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-1.5 pt-1 pb-1.5">
           {uploads.map((u) => (

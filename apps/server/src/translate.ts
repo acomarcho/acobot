@@ -117,6 +117,19 @@ export function createTranslator(known: Item[] = []) {
         return [save({ ...item, text: d.text })];
       }
 
+      // Also when OpenCode does it by itself because the chat got too long.
+      case 'session.compaction.ended':
+        return [save({ id: `notice:${nextAt()}`, at: nextAt(), kind: 'notice', text: 'Summed up the chat so far' })];
+      case 'session.compaction.failed':
+        return [
+          save({
+            id: `error:${nextAt()}`,
+            at: nextAt(),
+            kind: 'error',
+            text: `Could not sum up the chat: ${d.error?.message ?? 'unknown error'}`,
+          }),
+        ];
+
       case 'session.tool.input.started':
         return tool(d.id, { name: d.name });
       case 'session.tool.called':

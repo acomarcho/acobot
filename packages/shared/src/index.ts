@@ -75,8 +75,8 @@ export type NewMessage = { text: string; files: string[] };
 // Without `model` the chat starts on the default one.
 export type NewChat = NewMessage & { access: Access; model?: string };
 
-// A skill OpenCode can load, picked by typing `/id` in a message.
-export type Skill = { id: string; description: string };
+// Picked by typing `/name` in a message: one of acobot's commands, or a skill OpenCode can load.
+export type Command = { name: string; description: string; skill: boolean };
 
 // A model chats can use. `id` is `provider/model`.
 export type Model = { id: string; name: string; group: string };
