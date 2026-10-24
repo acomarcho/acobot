@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vite-plus/test';
 import { WebSocket } from 'ws';
-import { DEFAULT_BOT, openDb, setSetting, type Db } from './db.ts';
+import { DEFAULT_BOT, openDb, saveItem, setSetting, type Db } from './db.ts';
 import type { OcEvent } from './opencode.ts';
 import { DECLINED, RULES, type Oc } from './runner.ts';
 import { chats } from './schema.ts';
@@ -36,6 +36,8 @@ function fakeOpencode(name: string) {
   const calls: Record<string, any[]> = {};
   const listeners = new Set<(e: OcEvent) => void>();
   let sessionId = '';
+  // What the title model answers next, or an error it fails with.
+  let titleReply: string | Error = '"Saying Hi"\n';
   const call = (kind: string, input: any) => {
     (calls[kind] ??= []).push(input);
     const part = parts[0]?.trigger === kind ? parts.shift() : undefined;
@@ -80,9 +82,16 @@ function fakeOpencode(name: string) {
         list: async () => ({ data: MODELS.list }),
         default: async () => ({ data: MODELS.default }),
       },
+      generate: {
+        text: async (input: any) => {
+          call('generate', input);
+          if (titleReply instanceof Error) throw titleReply;
+          return { text: titleReply };
+        },
+      },
     } as any,
   };
-  return { oc, calls, sessionId: () => sessionId };
+  return { oc, calls, sessionId: () => sessionId, titleReply: (reply: string | Error) => (titleReply = reply) };
 }
 
 const closers: (() => void)[] = [];
@@ -437,4 +446,60 @@ test('a new chat uses the model picked for it, and switching later tells OpenCod
   await until(() => [...b.items.values()].some((i) => i.kind === 'notice' && i.text === 'Switched to GLM-5.3'));
   expect((await post(`/api/chats/${chat.id}/model`, { model: 'openai/gpt-6-sol' })).status).toBe(400);
   expect((await post('/api/chats/nope/model', { model: 'opencode-go/glm-5.3' })).status).toBe(404);
+});
+
+test('a new chat gets a title written by DeepSeek V4.1 Flash from its first message', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
+  // The first line stands in until the title is written. Quotes and extra lines from the model are dropped.
+  expect(chat.title).toBe('say hi');
+  await until(() => b.chats.get(chat.id)?.title === 'Saying Hi');
+  expect(fake.calls.generate).toHaveLength(1);
+  expect(fake.calls.generate[0].model).toEqual({ providerID: 'opencode-go', id: 'deepseek-v4.1-flash' });
+  expect(fake.calls.generate[0].prompt).toContain('User: say hi');
+});
+
+test('Regenerate title writes it again from the first 5 messages only', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post, db } = await boot(fake.oc);
+  const b = await browser(base);
+  const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
+  await until(() => b.chats.get(chat.id)?.status === 'idle' && b.chats.get(chat.id)?.title === 'Saying Hi');
+  // The recording holds 2 messages. 6 more, with a notice in between that is not a message.
+  saveItem(db, chat.id, { id: 'n', at: Date.now(), kind: 'notice', text: 'Switched to GLM-5.3' });
+  for (let i = 3; i <= 8; i++)
+    saveItem(db, chat.id, {
+      id: `m${i}`,
+      at: Date.now() + i,
+      kind: 'message',
+      by: i % 2 ? 'user' : 'bot',
+      text: `msg ${i}`,
+    });
+  fake.titleReply('Counting Messages');
+  const res = await post(`/api/chats/${chat.id}/title`, {});
+  expect(res.body.title).toBe('Counting Messages');
+  await until(() => b.chats.get(chat.id)?.title === 'Counting Messages');
+  const prompt: string = fake.calls.generate.at(-1).prompt;
+  expect(prompt.match(/^(User|Assistant): /gm)).toHaveLength(5);
+  expect(prompt).toContain('User: msg 5');
+  expect(prompt).not.toContain('msg 6');
+  expect(prompt).not.toContain('Switched');
+  expect((await post('/api/chats/nope/title', {})).status).toBe(404);
+});
+
+test('when no title can be written the chat keeps its first line', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  fake.titleReply(new Error('Out of credits'));
+  const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
+  await until(() => b.chats.get(chat.id)?.status === 'idle' && fake.calls.generate?.length === 1);
+  expect(b.chats.get(chat.id)?.title).toBe('say hi');
+  const res = await post(`/api/chats/${chat.id}/title`, {});
+  expect(res).toEqual({ status: 502, body: { error: 'Out of credits' } });
+  // A blank answer changes nothing either.
+  fake.titleReply('  \n');
+  expect((await post(`/api/chats/${chat.id}/title`, {})).body.title).toBe('say hi');
 });

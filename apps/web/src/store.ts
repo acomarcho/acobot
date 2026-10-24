@@ -120,13 +120,17 @@ export function useAppState() {
     const chat = await request<Chat>(`/api/chats/${chatId}/model`, { model });
     dispatch({ type: 'chat', chat });
   };
+  const retitle = async (chatId: string) => {
+    const chat = await request<Chat>(`/api/chats/${chatId}/title`, {});
+    dispatch({ type: 'chat', chat });
+  };
   const answer = (chatId: string, requestId: string, decision: Decision) =>
     request(`/api/chats/${chatId}/asks/${requestId}`, { decision });
   const answerForm = (chatId: string, formId: string, answer: Record<string, string | string[]>) =>
     request(`/api/chats/${chatId}/forms/${formId}`, { answer });
   const stop = (chatId: string) => request(`/api/chats/${chatId}/stop`, {});
 
-  return { ...state, openChat, createChat, sendMessage, setAccess, setModel, answer, answerForm, stop };
+  return { ...state, openChat, createChat, sendMessage, setAccess, setModel, retitle, answer, answerForm, stop };
 }
 
 export type App = ReturnType<typeof useAppState>;

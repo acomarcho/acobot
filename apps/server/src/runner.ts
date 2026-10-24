@@ -43,6 +43,12 @@ const idOf = (m: Pick<ModelInfo, 'providerID' | 'modelID'>) => `${m.providerID}/
 // `provider/model` as OpenCode wants it. Only the first slash splits: model names may have slashes of their own.
 const refOf = (id: string) => ({ providerID: id.slice(0, id.indexOf('/')), id: id.slice(id.indexOf('/') + 1) });
 
+// Chat titles are written by this model, from the first few messages.
+const TITLE_MODEL = 'opencode-go/deepseek-v4.1-flash';
+const TITLE_MESSAGES = 5;
+// Each message is cut to this many characters in the prompt, so a long paste does not cost much.
+const TITLE_MESSAGE_CHARS = 1000;
+
 // `home` is the folder sessions start in.
 export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: string }) {
   let oc: Oc | null = null;
@@ -192,6 +198,30 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
     }
   }
 
+  // Asks the title model for a title from the first messages, and saves it. A blank answer keeps the old title.
+  async function retitle(chatId: string) {
+    const messages = loadItems(db, chatId)
+      .filter((i) => i.kind === 'message')
+      .slice(0, TITLE_MESSAGES)
+      .map((m) => {
+        const attached = m.files?.length ? ` [attached: ${m.files.map((f) => f.name).join(', ')}]` : '';
+        return `${m.by === 'user' ? 'User' : 'Assistant'}: ${m.text.slice(0, TITLE_MESSAGE_CHARS)}${attached}`;
+      });
+    const { text } = await client().generate.text({
+      prompt: `Write a short title, at most 6 words, for the chat below. Answer with the title only.\n\n${messages.join('\n\n')}`,
+      model: refOf(TITLE_MODEL),
+    });
+    // Models sometimes wrap the title in quotes or add lines after it.
+    const title = text
+      .trim()
+      .split('\n')[0]
+      .replace(/^["'*]+|["'*.]+$/g, '')
+      .trim()
+      .slice(0, 70);
+    if (!title) return db.select(chatCols).from(chats).where(eq(chats.id, chatId)).get();
+    return setChat(chatId, { title }, false);
+  }
+
   return {
     // Starts following a (new) OpenCode server. The old one, if any, is let go.
     attach(server: Oc) {
@@ -244,10 +274,13 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
         .get();
       hub.toAll({ type: 'chat', chat });
       void send(chat.id, body);
+      // `send` has saved the first message by now. The first line stays the title if this fails.
+      retitle(chat.id).catch((err) => console.error('Could not write a chat title:', err.message));
       return chat;
     },
 
     send,
+    retitle,
 
     async setAccess(chatId: string, access: Access) {
       const chat = row(chatId);
