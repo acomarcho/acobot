@@ -1,0 +1,6 @@
+node_modules
+dist
+logbooks/
+.vite-plus
+.vitest
+.tanstack
