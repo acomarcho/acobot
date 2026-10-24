@@ -93,6 +93,11 @@ export function createApp({ db, home, uploads, web }: Deps) {
     return chat ? c.json(chat) : c.json({ error: 'Chat not found.' }, 404);
   });
 
+  app.post('/api/chats/:id/title', async (c) => {
+    if (!runner.has(c.req.param('id'))) return c.json({ error: 'Chat not found.' }, 404);
+    return c.json(await runner.retitle(c.req.param('id')));
+  });
+
   app.get('/api/models', async (c) => c.json(await runner.models()));
 
   app.post('/api/settings', async (c) => {

@@ -12,6 +12,7 @@ import {
   Loader2,
   Moon,
   Paperclip,
+  RefreshCw,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -773,6 +774,14 @@ export function useStickToBottom(dep: unknown, key?: string | null) {
 
 export function Details({ chat, items, onClose }: { chat: Chat; items: Item[]; onClose: () => void }) {
   const steps = items.filter((i): i is Tool => i.kind === 'tool' && i.name !== 'question');
+  const { retitle } = useApp();
+  const [titling, setTitling] = useState(false);
+  const regenerate = () => {
+    setTitling(true);
+    retitle(chat.id)
+      .catch((err) => alert(err.message))
+      .finally(() => setTitling(false));
+  };
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 shrink-0 items-center justify-between px-4">
@@ -789,6 +798,13 @@ export function Details({ chat, items, onClose }: { chat: Chat; items: Item[]; o
         <div className="flex flex-col items-center gap-2 pt-2 text-center">
           <Blob seed={chat.id} size={64} />
           <p className="font-medium">{chat.title}</p>
+          <button
+            disabled={titling}
+            onClick={regenerate}
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+          >
+            <RefreshCw className={`size-3.5 ${titling ? 'animate-spin' : ''}`} /> Regenerate title
+          </button>
         </div>
         <section>
           <h3 className="mb-1.5 text-xs text-muted-foreground">Activity</h3>
