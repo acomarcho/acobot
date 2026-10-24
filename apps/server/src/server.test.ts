@@ -1,15 +1,16 @@
-import type { Chat, FileRef, Item, Models, ServerEvent } from '@acobot/shared';
+import type { Chat, FileRef, Item, Models, ServerEvent, Skill } from '@acobot/shared';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vite-plus/test';
 import { WebSocket } from 'ws';
 import { DEFAULT_BOT, openDb, saveItem, setSetting, type Db } from './db.ts';
 import type { OcEvent } from './opencode.ts';
-import { DECLINED, RULES, type Oc } from './runner.ts';
+import { DECLINED, RULES, skillsIn, type Oc } from './runner.ts';
 import { chats } from './schema.ts';
 import { startServer } from './server.ts';
 import { recording } from './fixtures/recording.ts';
 import MODELS from './fixtures/models.json' with { type: 'json' };
+import SKILLS from './fixtures/skills.json' with { type: 'json' };
 
 const WORK = join(process.env.HOME!, 'acobot-work', 'test');
 // OpenCode's default in the recorded model list.
@@ -82,6 +83,7 @@ function fakeOpencode(name: string) {
         list: async () => ({ data: MODELS.list }),
         default: async () => ({ data: MODELS.default }),
       },
+      skill: { list: async (input: any) => (call('skills', input), { data: SKILLS }) },
       generate: {
         text: async (input: any) => {
           call('generate', input);
@@ -507,4 +509,45 @@ test('when no title can be written the chat keeps its first line', async () => {
   // A blank answer changes nothing either.
   fake.titleReply('  \n');
   expect((await post(`/api/chats/${chat.id}/title`, {})).body.title).toBe('say hi');
+});
+
+test('the skill list is what OpenCode finds from home, by name, without the skill contents', async () => {
+  const fake = fakeOpencode('chat');
+  const { base } = await boot(fake.oc);
+  const skills = (await (await fetch(base + '/api/skills')).json()) as Skill[];
+  expect(skills.map((s) => s.id)).toEqual(SKILLS.map((s) => s.id).sort((a, b) => a.localeCompare(b)));
+  expect(skills.find((s) => s.id === 'concise-mode')).toEqual({
+    id: 'concise-mode',
+    description: SKILLS.find((s) => s.id === 'concise-mode')!.description,
+  });
+  // Asked once right away, so OpenCode has them ready, then for the request.
+  expect(fake.calls.skills).toEqual([
+    { location: { directory: '/home/test' } },
+    { location: { directory: '/home/test' } },
+  ]);
+});
+
+test('a skill picked with /name is loaded by OpenCode for that turn', async () => {
+  const fake = fakeOpencode('skill');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  const sent = recording('skill').find((line) => line._do === 'prompt');
+  const { body: chat } = await post('/api/chats', { text: sent.text, files: [], access: 'full', model: MODEL });
+  await b.open(chat.id);
+  await until(() => b.chats.get(chat.id)?.status === 'idle');
+  // The same as what made a real OpenCode load the skill.
+  expect(fake.calls.prompt[0]).toMatchObject({ text: sent.text, skills: sent.skills });
+  expect(kinds(b.items)).toEqual(['message', 'message']);
+});
+
+test('only a /name that starts a word and names a skill counts, once each', () => {
+  const ids = new Set(['concise-mode', 'caveman']);
+  const names = (text: string) => skillsIn(text, ids).map((s) => s.mention.text);
+  expect(names('/caveman then /concise-mode please, /caveman again')).toEqual(['/caveman', '/concise-mode']);
+  expect(skillsIn('be short /caveman', ids)).toEqual([
+    { id: 'caveman', mention: { start: 9, end: 17, text: '/caveman' } },
+  ]);
+  expect(names('line one\n/caveman')).toEqual(['/caveman']);
+  for (const text of ['src/caveman', 'see https://x.com/caveman', '/usr/bin', '/caveman, ok', '/nope', 'no slash'])
+    expect(names(text), text).toEqual([]);
 });
