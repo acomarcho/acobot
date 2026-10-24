@@ -59,9 +59,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('acobot-theme', d ? 'dark' : 'light');
     set(d);
   };
+  // On <html>, so anything the browser shows outside the app (e.g. next to the phone keyboard) gets the theme color too.
+  useEffect(() => {
+    document.documentElement.className = dark ? 't-dark dark' : 't-light';
+  }, [dark]);
   return (
     <ThemeCtx.Provider value={{ dark, setDark }}>
-      <div className={`${dark ? 't-dark dark' : 't-light'} h-dvh bg-background text-foreground`}>{children}</div>
+      <div className="h-dvh bg-background text-foreground">{children}</div>
     </ThemeCtx.Provider>
   );
 }
