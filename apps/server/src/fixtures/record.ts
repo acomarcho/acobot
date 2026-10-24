@@ -1,12 +1,12 @@
 // Records what a real OpenCode 2 server sends for a few conversations, so tests can replay it.
 // Run: pnpm --filter @acobot/server record [name...]   (needs a working `opencode` login)
-// `models.json` (the models this login can use) is saved on every run.
+// `models.json` (the models this login can use) and `skills.json` (the skills found from home) are saved on every run.
 // Each fixture is JSON lines: OpenCode events for the session, plus `{ "_do": ... }` markers for what we did.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { sessionOf, startOpencode, type OcEvent, type Opencode } from '../opencode.ts';
-import { DECLINED, RULES } from '../runner.ts';
+import { DECLINED, RULES, skillsIn } from '../runner.ts';
 
 const BIN = process.env.OPENCODE_BIN ?? join(homedir(), '.opencode/bin/opencode');
 const WORK = join(homedir(), 'acobot-work', 'record');
@@ -24,10 +24,10 @@ type Step = (ctx: {
 type Scenario = { rules: typeof FULL | typeof ASK; steps: Step };
 
 const prompt =
-  (text: string, files?: { uri: string; name: string }[]): Step =>
+  (text: string, files?: { uri: string; name: string }[], skills?: ReturnType<typeof skillsIn>): Step =>
   async ({ oc, sessionID, log }) => {
-    log({ _do: 'prompt', text, files });
-    await oc.client.session.prompt({ sessionID, text, files });
+    log({ _do: 'prompt', text, files, skills });
+    await oc.client.session.prompt({ sessionID, text, files, skills });
   };
 const until =
   (type: string): Step =>
@@ -132,6 +132,26 @@ const SCENARIOS: Record<string, Scenario> = {
       await until('session.execution.succeeded')(c);
     },
   },
+  // A skill picked with `/name`: OpenCode loads it for the turn.
+  skill: {
+    rules: FULL,
+    steps: async (c) => {
+      const text = '/concise-mode What does DNS do?';
+      await prompt(text, undefined, skillsIn(text, new Set(['concise-mode'])))(c);
+      await until('session.execution.succeeded')(c);
+    },
+  },
+  // `/compact` after a short chat: OpenCode shrinks the history into a summary.
+  compact: {
+    rules: FULL,
+    steps: async (c) => {
+      await prompt('Reply with exactly five words saying hi.')(c);
+      await until('session.execution.succeeded')(c);
+      c.log({ _do: 'compact' });
+      await c.oc.client.session.compact({ sessionID: c.sessionID });
+      await c.next(['session.compaction.ended', 'session.compaction.failed']);
+    },
+  },
   // Stopping a long command partway.
   interrupt: {
     rules: FULL,
@@ -156,6 +176,14 @@ try {
   const models = { list: list.data.map(trim), default: trim(fallback.data) };
   writeFileSync(join(OUT, 'models.json'), JSON.stringify(models, null, 2) + '\n');
   console.log(`recorded models: ${models.list.length}`);
+  // OpenCode starts looking for skills when first asked, and lists them a moment later. Kept to what acobot reads.
+  const listSkills = () => oc.client.skill.list({ location: { directory: homedir() } });
+  await listSkills();
+  await new Promise((r) => setTimeout(r, 3000));
+  const skills = await listSkills();
+  const kept = skills.data.map((s) => ({ id: s.id, description: s.description }));
+  writeFileSync(join(OUT, 'skills.json'), JSON.stringify(kept, null, 2) + '\n');
+  console.log(`recorded skills: ${kept.length}`);
   // `record models` saves only the models.
   for (const name of wanted.filter((n) => n in SCENARIOS)) {
     const scenario = SCENARIOS[name];

@@ -1,4 +1,13 @@
-import { ACCESS, type Access, type Chat, type Field, type FileRef, type Item, type Model } from '@acobot/shared';
+import {
+  ACCESS,
+  type Access,
+  type Chat,
+  type Field,
+  type FileRef,
+  type Item,
+  type Model,
+  type Command,
+} from '@acobot/shared';
 import { code } from '@streamdown/code';
 import {
   ArrowUp,
@@ -25,6 +34,7 @@ import {
 } from 'lucide-react';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Streamdown } from 'streamdown';
+import { CommandMenu, suggest, useCommands } from './commands';
 import { useApp, useModels } from './store';
 import { fileUrl, isImage, uploadFile } from './upload';
 
@@ -618,6 +628,26 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   const busy = chat !== undefined && chat.status !== 'idle';
   const uploading = uploads.some((u) => !u.ref);
   const ready = (text.trim() || uploads.length) && !uploading && !sending;
+  const commands = useCommands();
+  // Where the caret was after the last change to the text, which suggestion is lit, and whether the suggestions were
+  // closed since that change (with Escape, by moving the caret or by leaving the box).
+  const [caret, setCaret] = useState(0);
+  const [lit, setLit] = useState(0);
+  const [closed, setClosed] = useState(false);
+  const menu = closed ? null : suggest(commands, text, caret);
+  const edited = () => {
+    setText(ref.current!.value);
+    setCaret(ref.current!.selectionStart);
+    setLit(0);
+    setClosed(false);
+  };
+  // Swaps the word the caret is in for the whole name, and leaves the caret after it.
+  const pick = (command: Command) => {
+    const end = caret + text.slice(caret).search(/\s|$/);
+    ref.current!.setRangeText(`/${command.name} `, menu!.start, end, 'end');
+    // Told to the box the way typing is, so it is taken in like any other change.
+    ref.current!.dispatchEvent(new Event('input', { bubbles: true }));
+  };
 
   useEffect(() => {
     const el = ref.current!;
@@ -660,8 +690,9 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
         e.preventDefault();
         void submit();
       }}
-      className="rounded-[22px] border border-border bg-card p-1.5"
+      className="relative rounded-[22px] border border-border bg-card p-1.5"
     >
+      {menu && <CommandMenu items={menu.items} active={lit} onActive={setLit} onPick={pick} />}
       {uploads.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-1.5 pt-1 pb-1.5">
           {uploads.map((u) => (
@@ -689,11 +720,23 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
         rows={1}
         value={text}
         placeholder={chat ? 'Reply' : 'Message acobot'}
-        onChange={(e) => setText(e.target.value)}
+        onChange={edited}
+        onSelect={(e) => e.currentTarget.selectionStart !== caret && setClosed(true)}
+        onBlur={() => setClosed(true)}
         onPaste={(e) => e.clipboardData.files.length && (e.preventDefault(), attach(e.clipboardData.files))}
         onKeyDown={(e) => {
-          if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing || matchMedia('(pointer: coarse)').matches)
+          if (e.nativeEvent.isComposing) return;
+          // While suggestions are open, the keys that would move the caret or send the message work the list.
+          const step = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+          const picks = (e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey;
+          if (menu && (step || picks || e.key === 'Escape')) {
+            e.preventDefault();
+            if (step) setLit((lit + step + menu.items.length) % menu.items.length);
+            else if (picks) pick(menu.items[lit]);
+            else setClosed(true);
             return;
+          }
+          if (e.key !== 'Enter' || e.shiftKey || matchMedia('(pointer: coarse)').matches) return;
           e.preventDefault();
           void submit();
         }}

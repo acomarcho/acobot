@@ -138,3 +138,20 @@ test('a file write shows the path it writes, whatever order the model wrote its 
   const card = outs.find((o) => o.type === 'item');
   expect(card?.type === 'item' && card.item.kind === 'tool' && card.item.detail).toBe('/home/u/.bashrc');
 });
+
+test('summing up the chat says so in the chat, and a failed one says why', () => {
+  const { items, statuses } = play('compact');
+  expect(kinds(items)).toEqual(['message', 'notice']);
+  expect(items[1]).toMatchObject({ kind: 'notice', text: 'Summed up the chat so far' });
+  expect(statuses).toEqual(['working', 'idle', 'working', 'idle']);
+  const failed = recording('compact')
+    .filter((l) => l.type === 'session.compaction.ended')
+    .map((e) => ({
+      ...e,
+      type: 'session.compaction.failed',
+      data: { ...e.data, error: { message: 'Nothing to compact yet' } },
+    }));
+  expect(createTranslator().translate(failed[0])).toMatchObject([
+    { item: { kind: 'error', text: 'Could not sum up the chat: Nothing to compact yet' } },
+  ]);
+});

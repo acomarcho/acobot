@@ -1,4 +1,16 @@
-import type { Access, Chat, Decision, FileRef, Item, Model, Models, NewChat, NewMessage, Status } from '@acobot/shared';
+import type {
+  Access,
+  Chat,
+  Command,
+  Decision,
+  FileRef,
+  Item,
+  Model,
+  Models,
+  NewChat,
+  NewMessage,
+  Status,
+} from '@acobot/shared';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { chatCols, DEFAULT_BOT, getSetting, loadItems, saveItem, type Db } from './db.ts';
@@ -49,6 +61,22 @@ const TITLE_MODEL = 'opencode-go/deepseek-v4.1-flash';
 const TITLE_MESSAGES = 5;
 // Each message is cut to this many characters in the prompt, so a long paste does not cost much.
 const TITLE_MESSAGE_CHARS = 1000;
+
+// acobot's own commands. One is run when it is the whole message, instead of sending it.
+const COMPACT: Command = {
+  name: 'compact',
+  description: 'Sum up the chat so far to free up room, so a long chat can keep going',
+  skill: false,
+};
+
+// Each `/id` word in the text that names a skill, the way OpenCode wants them: those skills are loaded for the turn.
+// The slash must start a word, so paths and links never count.
+export function skillsIn(text: string, ids: Set<string>) {
+  const found = [...text.matchAll(/(?<=^|\s)\/(\S+)/g)].filter((m) => ids.has(m[1]));
+  return found
+    .filter((m, i) => found.findIndex((other) => other[1] === m[1]) === i)
+    .map((m) => ({ id: m[1], mention: { start: m.index, end: m.index + m[0].length, text: m[0] } }));
+}
 
 // `home` is the folder sessions start in.
 export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: string }) {
@@ -173,9 +201,14 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
       { type: 'status', status: 'working' },
     ]);
     try {
+      if (message.text === `/${COMPACT.name}`)
+        return void (await client().session.compact({ sessionID: chat.sessionId }));
+      // Without the list the message still goes, just without skills.
+      const known = message.text.includes('/') ? await skills().catch(() => []) : [];
       await client().session.prompt({
         sessionID: chat.sessionId,
         text: message.text,
+        skills: skillsIn(message.text, new Set(known.map((s) => s.name))),
         files: attached.map((f) => ({
           uri: `file://${f.path}`,
           name: f.name,
@@ -197,6 +230,15 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
         { type: 'status', status: 'idle' },
       ]);
     }
+  }
+
+  // The skills OpenCode finds from the home folder: its own, plus those in ~/.agents/skills, ~/.claude/skills and its
+  // config. Their contents stay out; the list is only for picking.
+  async function skills(): Promise<Command[]> {
+    const { data } = await client().skill.list({ location: { directory: opts.home } });
+    return data
+      .map((s) => ({ name: s.id, description: s.description ?? '', skill: true }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   // Asks the title model for a title from the first messages, and saves it. A blank answer keeps the old title.
@@ -228,6 +270,8 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
     attach(server: Oc) {
       oc = server;
       void follow(server);
+      // OpenCode looks for skills only once asked, so they are ready by the time someone types a `/`.
+      skills().catch(() => {});
     },
     detach() {
       oc = null;
@@ -282,6 +326,8 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
 
     send,
     retitle,
+    // What can be picked with `/`: acobot's commands, then the skills.
+    commands: async () => [COMPACT, ...(await skills())],
 
     async setAccess(chatId: string, access: Access) {
       const chat = row(chatId);
