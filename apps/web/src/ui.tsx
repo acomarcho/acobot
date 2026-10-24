@@ -661,8 +661,10 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   const { models } = useModels();
   const [text, setText] = useState('');
   const [uploads, setUploads] = useState<Upload[]>([]);
-  // The access a new chat will start with.
-  const [access, setNewAccess] = useState<Access>('ask');
+  // The access a new chat will start with, once picked. Until then, the server's default. What the pill shows is
+  // what gets sent, even while the default is still loading.
+  const [pickedAccess, setNewAccess] = useState<Access>();
+  const access = chat?.access ?? pickedAccess ?? models?.defaultAccess ?? 'ask';
   // The model a new chat will start with, once picked. Until then, the server's default.
   const [picked, setPicked] = useState<string>();
   const model = chat?.model ?? picked ?? models?.default ?? '';
@@ -804,7 +806,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
           <Paperclip className="size-4.5" />
         </button>
         <AccessPill
-          access={chat?.access ?? access}
+          access={access}
           onChange={(a) => (chat ? void setAccess(chat.id, a).catch((err) => alert(err.message)) : setNewAccess(a))}
         />
         {models && (

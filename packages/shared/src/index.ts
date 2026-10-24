@@ -72,18 +72,18 @@ export const DECISIONS: Decision[] = ['once', 'always', 'reject'];
 
 // What the browser sends to start a chat or add to one. `files` are ids from an earlier upload.
 export type NewMessage = { text: string; files: string[] };
-// Without `model` the chat starts on the default one.
-export type NewChat = NewMessage & { access: Access; model?: string };
+// Without `access` or `model` the chat starts on the default one.
+export type NewChat = NewMessage & { access?: Access; model?: string };
 
 // Picked by typing `/name` in a message: one of acobot's commands, or a skill OpenCode can load.
 export type Command = { name: string; description: string; skill: boolean };
 
 // A model chats can use. `id` is `provider/model`.
 export type Model = { id: string; name: string; group: string };
-// The models to pick from, and the one new chats start on.
-export type Models = { models: Model[]; default: string };
+// The models to pick from, and the model and access new chats start on.
+export type Models = { models: Model[]; default: string; defaultAccess: Access };
 
-export type Settings = { defaultModel: string };
+export type Settings = { defaultModel: string; defaultAccess: Access };
 
 // What the server pushes over the WebSocket. `item` carries the whole item, so getting it twice is harmless.
 export type ServerEvent =
