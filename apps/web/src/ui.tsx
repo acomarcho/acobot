@@ -35,6 +35,7 @@ import {
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Streamdown } from 'streamdown';
 import { CommandMenu, suggest, useCommands } from './commands';
+import { byDay, clock, dayLabel, dayOf } from './days';
 import { useApp, useModels } from './store';
 import { fileUrl, isImage, uploadFile } from './upload';
 
@@ -403,9 +404,32 @@ function FileChips({ files, mine }: { files: FileRef[]; mine?: boolean }) {
 
 const bubble = 'max-w-[85%] rounded-2xl px-3.5 py-2 sm:max-w-xl';
 
-// What is in a chat. Back-to-back steps share one card; a step that waits for approval gets its own.
-export function Messages({ chat, items }: { chat: Chat; items: Item[] }) {
-  type Block = Item | Tool[];
+// When a bubble was sent. Hovering shows the full date.
+const Stamp = ({ at }: { at: number }) => (
+  <span title={new Date(at).toLocaleString()} className="px-1 text-[11px] text-muted-foreground">
+    {clock(at)}
+  </span>
+);
+
+// One day of a chat. Its date pill stays at the top while the day scrolls by, and the next day's section
+// pushes it away, since a sticky thing never leaves its section.
+function Day({ at, children }: { at: number; children: ReactNode }) {
+  return (
+    <section className="relative space-y-2 before:absolute before:inset-x-0 before:top-3.5 before:border-t before:border-border">
+      <div className="pointer-events-none sticky top-0 z-10 flex h-7 items-center justify-center">
+        <span className="rounded-full border border-border bg-background px-3 py-0.5 text-xs font-medium shadow-sm">
+          {dayLabel(at)}
+        </span>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+type Block = Item | Tool[];
+
+// Back-to-back steps share one card; a step that waits for approval gets its own.
+function blocksOf(items: Item[]) {
   const blocks: Block[] = [];
   for (const item of items) {
     const prev = blocks.at(-1);
@@ -415,10 +439,38 @@ export function Messages({ chat, items }: { chat: Chat; items: Item[] }) {
     if (step && Array.isArray(prev)) prev.push(item as Tool);
     else blocks.push(step ? [item as Tool] : item);
   }
+  return blocks;
+}
+
+// What is in a chat, one section per day.
+export function Messages({ chat, items }: { chat: Chat; items: Item[] }) {
   const last = items.at(-1);
   const typing = chat.status === 'working' && !(last?.kind === 'message' && last.by === 'bot' && last.text);
   return (
     <div className="space-y-2">
+      {byDay(items).map((day) => (
+        <Day key={dayOf(day[0].at)} at={day[0].at}>
+          <Blocks chatId={chat.id} blocks={blocksOf(day)} />
+        </Day>
+      ))}
+      {typing && (
+        <div className="flex w-fit gap-1 rounded-2xl bg-bubble px-3.5 py-3" aria-label="Working">
+          {[0, 150, 300].map((d) => (
+            <span
+              key={d}
+              className="size-1.5 animate-bounce rounded-full bg-muted-foreground"
+              style={{ animationDelay: `${d}ms` }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Blocks({ chatId, blocks }: { chatId: string; blocks: Block[] }) {
+  return (
+    <>
       {blocks.map((b, i) => {
         if (Array.isArray(b))
           return (
@@ -435,16 +487,20 @@ export function Messages({ chat, items }: { chat: Chat; items: Item[] }) {
               {b.text && (
                 <div className={`${bubble} bg-mine whitespace-pre-wrap break-words text-mine-foreground`}>{b.text}</div>
               )}
+              <Stamp at={b.at} />
             </div>
           );
         if (b.kind === 'message')
           return b.text ? (
-            <div key={b.id} className={`${bubble} w-fit bg-bubble`}>
-              <Markdown text={b.text} />
+            <div key={b.id} className="flex flex-col items-start gap-1">
+              <div className={`${bubble} w-fit bg-bubble`}>
+                <Markdown text={b.text} />
+              </div>
+              <Stamp at={b.at} />
             </div>
           ) : null;
-        if (b.kind === 'tool') return <AskCard key={b.id} chatId={chat.id} part={b} />;
-        if (b.kind === 'form') return <FormCard key={b.id} chatId={chat.id} form={b} />;
+        if (b.kind === 'tool') return <AskCard key={b.id} chatId={chatId} part={b} />;
+        if (b.kind === 'form') return <FormCard key={b.id} chatId={chatId} form={b} />;
         if (b.kind === 'error')
           return (
             <div key={b.id} className={`${bubble} w-fit border border-bad/40 text-bad`}>
@@ -457,18 +513,7 @@ export function Messages({ chat, items }: { chat: Chat; items: Item[] }) {
           </p>
         );
       })}
-      {typing && (
-        <div className="flex w-fit gap-1 rounded-2xl bg-bubble px-3.5 py-3" aria-label="Working">
-          {[0, 150, 300].map((d) => (
-            <span
-              key={d}
-              className="size-1.5 animate-bounce rounded-full bg-muted-foreground"
-              style={{ animationDelay: `${d}ms` }}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
