@@ -47,7 +47,11 @@ type ModelInfo = Awaited<ReturnType<Oc['client']['model']['list']>>['data'][numb
 
 // The picker shows every model of these providers, under these headings, plus OpenCode's free ones.
 // Others (like models from an OpenAI login) stay out; some of those claim a cost of 0 only because their price is unknown.
-const PROVIDERS: Record<string, string> = { 'opencode-go': 'OpenCode Go', refuseless: 'Refuseless' };
+const PROVIDERS: Record<string, string> = {
+  'opencode-go': 'OpenCode Go',
+  refuseless: 'Refuseless',
+  explabs: 'Experiential Labs',
+};
 const GROUPS = [...Object.values(PROVIDERS), 'Free'];
 const free = (m: ModelInfo) => m.providerID === 'opencode' && m.cost.every((c) => !c.input && !c.output);
 const groupOf = (m: ModelInfo) => PROVIDERS[m.providerID] ?? (free(m) ? 'Free' : undefined);
