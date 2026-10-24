@@ -1,0 +1,104 @@
+@import 'tailwindcss';
+
+@source "../node_modules/streamdown/dist/*.js";
+@source "../node_modules/@streamdown/code/dist/*.js";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-bubble: var(--bubble);
+  --color-mine: var(--mine);
+  --color-mine-foreground: var(--mine-foreground);
+  --color-accent: var(--accent);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-size: 15px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Grok Bot-like palettes. Components only use the color names above. */
+.t-dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --muted: #1c1c1c;
+  --muted-foreground: #8a8a8a;
+  --border: #262626;
+  --card: #161616;
+  --primary: #f2f2f2;
+  --primary-foreground: #0a0a0a;
+  --sidebar: #121212;
+  --sidebar-accent: #242424;
+  --bubble: #1e1e1e;
+  --mine: #3a3a3a;
+  --mine-foreground: #f2f2f2;
+  --accent: #3b82f6;
+  --ok: #4ccb7f;
+  --warn: #f0a73a;
+  --bad: #f06a5a;
+}
+
+.t-light {
+  --background: #ffffff;
+  --foreground: #141414;
+  --muted: #ececec;
+  --muted-foreground: #7d7d7d;
+  --border: #e6e6e6;
+  --card: #ffffff;
+  --primary: #111111;
+  --primary-foreground: #ffffff;
+  --sidebar: #f6f6f6;
+  --sidebar-accent: #e7e7e7;
+  --bubble: #f0f0f0;
+  --mine: #111111;
+  --mine-foreground: #ffffff;
+  --accent: #2f7cf6;
+  --ok: #2f9e5b;
+  --warn: #d98a1c;
+  --bad: #d44a3a;
+}
+
+[data-streamdown='ordered-list'],
+[data-streamdown='unordered-list'] {
+  list-style-position: outside;
+  padding-left: 1.5rem;
+}
+[data-streamdown='list-item'] {
+  padding-block: 0;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+}
