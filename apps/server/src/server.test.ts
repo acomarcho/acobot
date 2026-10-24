@@ -395,20 +395,25 @@ test('a subagent asking for approval shows a card in its chat, and the answer go
   expect((await post(`/api/chats/${chat.id}/asks/per_nope`, { decision: 'once' })).status).toBe(404);
 });
 
-test('the model list has the OpenCode Go, Refuseless and free models only, and new chats start on the default', async () => {
+test('the model list has the OpenCode Go, Refuseless, Experiential Labs and free models only, and new chats start on the default', async () => {
   const { base } = await boot(fakeOpencode('chat').oc);
   const { models, default: fallback } = (await (await fetch(base + '/api/models')).json()) as Models;
   // OpenCode's free ones. Some OpenAI image models also claim a cost of 0, and must not show up.
   const free = MODELS.list.filter((m) => m.providerID === 'opencode' && m.cost.every((c) => !c.input && !c.output));
-  const picked = MODELS.list.filter((m) => m.providerID === 'opencode-go' || m.providerID === 'refuseless');
+  const picked = MODELS.list.filter((m) => ['opencode-go', 'refuseless', 'explabs'].includes(m.providerID));
   expect(models.length).toBe(new Set([...free, ...picked]).size);
-  expect(models.some((m) => m.id.startsWith('openai/') || m.id.startsWith('explabs/'))).toBe(false);
-  // Go first, then Refuseless, then free.
-  expect([...new Set(models.map((m) => m.group))]).toEqual(['OpenCode Go', 'Refuseless', 'Free']);
+  expect(models.some((m) => m.id.startsWith('openai/'))).toBe(false);
+  // Go first, then Refuseless, then Experiential Labs, then free.
+  expect([...new Set(models.map((m) => m.group))]).toEqual(['OpenCode Go', 'Refuseless', 'Experiential Labs', 'Free']);
   expect(models.find((m) => m.id === 'refuseless/glm-5.3-abliterated')).toEqual({
     id: 'refuseless/glm-5.3-abliterated',
     name: 'glm-5.3-abliterated',
     group: 'Refuseless',
+  });
+  expect(models.find((m) => m.id === 'explabs/glm-5.3-uncensored')).toEqual({
+    id: 'explabs/glm-5.3-uncensored',
+    name: 'glm-5.3-uncensored',
+    group: 'Experiential Labs',
   });
   expect(models.find((m) => m.id === 'opencode/big-pickle')).toEqual({
     id: 'opencode/big-pickle',
