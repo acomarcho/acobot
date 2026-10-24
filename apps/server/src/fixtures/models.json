@@ -277,16 +277,16 @@
       "status": "active"
     },
     {
-      "id": "mimo-v2.6-flash",
-      "modelID": "mimo-v2.6-flash",
+      "id": "mimo-v2.6-pro",
+      "modelID": "mimo-v2.6-pro",
       "providerID": "opencode-go",
-      "name": "MiMo-V2.6-Flash",
+      "name": "MiMo-V2.6-Pro",
       "cost": [
         {
-          "input": 0.14,
-          "output": 0.28,
+          "input": 0.435,
+          "output": 0.87,
           "cache": {
-            "read": 0.0028,
+            "read": 0.003625,
             "write": 0
           }
         }
@@ -325,16 +325,16 @@
       "status": "active"
     },
     {
-      "id": "mimo-v2.6-pro",
-      "modelID": "mimo-v2.6-pro",
+      "id": "mimo-v2.6-flash",
+      "modelID": "mimo-v2.6-flash",
       "providerID": "opencode-go",
-      "name": "MiMo-V2.6-Pro",
+      "name": "MiMo-V2.6-Flash",
       "cost": [
         {
-          "input": 0.435,
-          "output": 0.87,
+          "input": 0.14,
+          "output": 0.28,
           "cache": {
-            "read": 0.003625,
+            "read": 0.0028,
             "write": 0
           }
         }
@@ -354,96 +354,6 @@
           "cache": {
             "read": 0,
             "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-6-sol",
-      "modelID": "gpt-6-sol",
-      "providerID": "openai",
-      "name": "GPT-6 Sol",
-      "cost": [
-        {
-          "input": 2,
-          "output": 10,
-          "cache": {
-            "read": 0.2,
-            "write": 2.5
-          }
-        },
-        {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 4,
-          "output": 15,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-6-sol-fast",
-      "modelID": "gpt-6-sol",
-      "providerID": "openai",
-      "name": "GPT-6 Sol Fast",
-      "cost": [
-        {
-          "input": 4,
-          "output": 20,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
-        },
-        {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 4,
-          "output": 15,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-6-sol-pro",
-      "modelID": "gpt-6-sol",
-      "providerID": "openai",
-      "name": "GPT-6 Sol Pro",
-      "cost": [
-        {
-          "input": 2,
-          "output": 10,
-          "cache": {
-            "read": 0.2,
-            "write": 2.5
-          }
-        },
-        {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 4,
-          "output": 15,
-          "cache": {
-            "read": 0.4,
-            "write": 5
           }
         }
       ],
@@ -534,6 +444,96 @@
           "cache": {
             "read": 0.02,
             "write": 0.25
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-6-sol",
+      "modelID": "gpt-6-sol",
+      "providerID": "openai",
+      "name": "GPT-6 Sol",
+      "cost": [
+        {
+          "input": 2,
+          "output": 10,
+          "cache": {
+            "read": 0.2,
+            "write": 2.5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 4,
+          "output": 15,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-6-sol-fast",
+      "modelID": "gpt-6-sol",
+      "providerID": "openai",
+      "name": "GPT-6 Sol Fast",
+      "cost": [
+        {
+          "input": 4,
+          "output": 20,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 4,
+          "output": 15,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-6-sol-pro",
+      "modelID": "gpt-6-sol",
+      "providerID": "openai",
+      "name": "GPT-6 Sol Pro",
+      "cost": [
+        {
+          "input": 2,
+          "output": 10,
+          "cache": {
+            "read": 0.2,
+            "write": 2.5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 4,
+          "output": 15,
+          "cache": {
+            "read": 0.4,
+            "write": 5
           }
         }
       ],
@@ -871,24 +871,6 @@
       "status": "active"
     },
     {
-      "id": "gpt-daybreak-red-latest",
-      "modelID": "gpt-daybreak-red-latest",
-      "providerID": "openai",
-      "name": "Daybreak Red",
-      "cost": [
-        {
-          "input": 12.5,
-          "output": 75,
-          "cache": {
-            "read": 1.25,
-            "write": 15.625
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
       "id": "gpt-daybreak-blue-latest",
       "modelID": "gpt-daybreak-blue-latest",
       "providerID": "openai",
@@ -912,6 +894,24 @@
           "cache": {
             "read": 0.8,
             "write": 10
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-daybreak-red-latest",
+      "modelID": "gpt-daybreak-red-latest",
+      "providerID": "openai",
+      "name": "Daybreak Red",
+      "cost": [
+        {
+          "input": 12.5,
+          "output": 75,
+          "cache": {
+            "read": 1.25,
+            "write": 15.625
           }
         }
       ],
@@ -1093,96 +1093,6 @@
       "status": "active"
     },
     {
-      "id": "gpt-5.6-sol",
-      "modelID": "gpt-5.6-sol",
-      "providerID": "openai",
-      "name": "GPT-5.6 Sol",
-      "cost": [
-        {
-          "input": 4,
-          "output": 20,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
-        },
-        {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 8,
-          "output": 30,
-          "cache": {
-            "read": 0.8,
-            "write": 10
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.6-sol-fast",
-      "modelID": "gpt-5.6-sol",
-      "providerID": "openai",
-      "name": "GPT-5.6 Sol Fast",
-      "cost": [
-        {
-          "input": 8,
-          "output": 40,
-          "cache": {
-            "read": 0.8,
-            "write": 10
-          }
-        },
-        {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 8,
-          "output": 30,
-          "cache": {
-            "read": 0.8,
-            "write": 10
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.6-sol-pro",
-      "modelID": "gpt-5.6-sol",
-      "providerID": "openai",
-      "name": "GPT-5.6 Sol Pro",
-      "cost": [
-        {
-          "input": 4,
-          "output": 20,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
-        },
-        {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 8,
-          "output": 30,
-          "cache": {
-            "read": 0.8,
-            "write": 10
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
       "id": "gpt-5.6",
       "modelID": "gpt-5.6",
       "providerID": "openai",
@@ -1356,6 +1266,96 @@
           "cache": {
             "read": 0.04,
             "write": 0.5
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "modelID": "gpt-5.6-sol",
+      "providerID": "openai",
+      "name": "GPT-5.6 Sol",
+      "cost": [
+        {
+          "input": 4,
+          "output": 20,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 8,
+          "output": 30,
+          "cache": {
+            "read": 0.8,
+            "write": 10
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-5.6-sol-fast",
+      "modelID": "gpt-5.6-sol",
+      "providerID": "openai",
+      "name": "GPT-5.6 Sol Fast",
+      "cost": [
+        {
+          "input": 8,
+          "output": 40,
+          "cache": {
+            "read": 0.8,
+            "write": 10
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 8,
+          "output": 30,
+          "cache": {
+            "read": 0.8,
+            "write": 10
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-5.6-sol-pro",
+      "modelID": "gpt-5.6-sol",
+      "providerID": "openai",
+      "name": "GPT-5.6 Sol Pro",
+      "cost": [
+        {
+          "input": 4,
+          "output": 20,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 8,
+          "output": 30,
+          "cache": {
+            "read": 0.8,
+            "write": 10
           }
         }
       ],
@@ -1639,24 +1639,6 @@
       "status": "active"
     },
     {
-      "id": "mimo-v2.5-pro",
-      "modelID": "mimo-v2.5-pro",
-      "providerID": "opencode-go",
-      "name": "MiMo V2.5 Pro",
-      "cost": [
-        {
-          "input": 0.435,
-          "output": 0.87,
-          "cache": {
-            "read": 0.003625,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
       "id": "mimo-v2.5",
       "modelID": "mimo-v2.5",
       "providerID": "opencode-go",
@@ -1667,6 +1649,24 @@
           "output": 0.28,
           "cache": {
             "read": 0.0028,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "mimo-v2.5-pro",
+      "modelID": "mimo-v2.5-pro",
+      "providerID": "opencode-go",
+      "name": "MiMo V2.5 Pro",
+      "cost": [
+        {
+          "input": 0.435,
+          "output": 0.87,
+          "cache": {
+            "read": 0.003625,
             "write": 0
           }
         }
@@ -1927,6 +1927,24 @@
       "status": "active"
     },
     {
+      "id": "gpt-5.2-pro",
+      "modelID": "gpt-5.2-pro",
+      "providerID": "openai",
+      "name": "GPT-5.2 Pro",
+      "cost": [
+        {
+          "input": 21,
+          "output": 168,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
       "id": "gpt-5.2",
       "modelID": "gpt-5.2",
       "providerID": "openai",
@@ -1973,24 +1991,6 @@
           "output": 7,
           "cache": {
             "read": 0.0875,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.2-pro",
-      "modelID": "gpt-5.2-pro",
-      "providerID": "openai",
-      "name": "GPT-5.2 Pro",
-      "cost": [
-        {
-          "input": 21,
-          "output": 168,
-          "cache": {
-            "read": 0,
             "write": 0
           }
         }
@@ -2341,42 +2341,6 @@
       "status": "active"
     },
     {
-      "id": "gpt-4.1",
-      "modelID": "gpt-4.1",
-      "providerID": "openai",
-      "name": "GPT-4.1",
-      "cost": [
-        {
-          "input": 2,
-          "output": 8,
-          "cache": {
-            "read": 0.5,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-4.1-fast",
-      "modelID": "gpt-4.1",
-      "providerID": "openai",
-      "name": "GPT-4.1 Fast",
-      "cost": [
-        {
-          "input": 3.5,
-          "output": 14,
-          "cache": {
-            "read": 0.875,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
       "id": "gpt-4.1-mini",
       "modelID": "gpt-4.1-mini",
       "providerID": "openai",
@@ -2405,6 +2369,42 @@
           "output": 2.8,
           "cache": {
             "read": 0.175,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-4.1",
+      "modelID": "gpt-4.1",
+      "providerID": "openai",
+      "name": "GPT-4.1",
+      "cost": [
+        {
+          "input": 2,
+          "output": 8,
+          "cache": {
+            "read": 0.5,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "gpt-4.1-fast",
+      "modelID": "gpt-4.1",
+      "providerID": "openai",
+      "name": "GPT-4.1 Fast",
+      "cost": [
+        {
+          "input": 3.5,
+          "output": 14,
+          "cache": {
+            "read": 0.875,
             "write": 0
           }
         }
@@ -2521,13 +2521,13 @@
       "status": "active"
     },
     {
-      "id": "text-embedding-3-large",
-      "modelID": "text-embedding-3-large",
+      "id": "text-embedding-3-small",
+      "modelID": "text-embedding-3-small",
       "providerID": "openai",
-      "name": "text-embedding-3-large",
+      "name": "text-embedding-3-small",
       "cost": [
         {
-          "input": 0.13,
+          "input": 0.02,
           "output": 0,
           "cache": {
             "read": 0,
@@ -2539,13 +2539,13 @@
       "status": "active"
     },
     {
-      "id": "text-embedding-3-small",
-      "modelID": "text-embedding-3-small",
+      "id": "text-embedding-3-large",
+      "modelID": "text-embedding-3-large",
       "providerID": "openai",
-      "name": "text-embedding-3-small",
+      "name": "text-embedding-3-large",
       "cost": [
         {
-          "input": 0.02,
+          "input": 0.13,
           "output": 0,
           "cache": {
             "read": 0,
@@ -2567,6 +2567,150 @@
           "output": 0,
           "cache": {
             "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "deepseek-v4.1-flash-uncensored",
+      "modelID": "deepseek-v4.1-flash-uncensored",
+      "providerID": "explabs",
+      "name": "deepseek-v4.1-flash-uncensored",
+      "cost": [
+        {
+          "input": 0.3,
+          "output": 1.2,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "glm-5.3-uncensored",
+      "modelID": "glm-5.3-uncensored",
+      "providerID": "explabs",
+      "name": "glm-5.3-uncensored",
+      "cost": [
+        {
+          "input": 1.4,
+          "output": 4.4,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "glm-5.3-flash-uncensored",
+      "modelID": "glm-5.3-flash-uncensored",
+      "providerID": "explabs",
+      "name": "glm-5.3-flash-uncensored",
+      "cost": [
+        {
+          "input": 0.15,
+          "output": 0.5,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "mimo-v2.6-flash-uncensored",
+      "modelID": "mimo-v2.6-flash-uncensored",
+      "providerID": "explabs",
+      "name": "mimo-v2.6-flash-uncensored",
+      "cost": [
+        {
+          "input": 0.14,
+          "output": 0.28,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "dolphin-mistral-24b-venice-edition",
+      "modelID": "dolphin-mistral-24b-venice-edition",
+      "providerID": "explabs",
+      "name": "dolphin-mistral-24b-venice-edition",
+      "cost": [
+        {
+          "input": 0.2,
+          "output": 0.9,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "glm-5.3-abliterated",
+      "modelID": "glm-5.3-abliterated",
+      "providerID": "refuseless",
+      "name": "glm-5.3-abliterated",
+      "cost": [
+        {
+          "input": 2,
+          "output": 3,
+          "cache": {
+            "read": 0.35,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "glm-5.3-flash-abliterated",
+      "modelID": "glm-5.3-flash-abliterated",
+      "providerID": "refuseless",
+      "name": "glm-5.3-flash-abliterated",
+      "cost": [
+        {
+          "input": 0.25,
+          "output": 0.8,
+          "cache": {
+            "read": 0.15,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active"
+    },
+    {
+      "id": "deepseek-v4.1-flash-abliterated",
+      "modelID": "deepseek-v4.1-flash-abliterated",
+      "providerID": "refuseless",
+      "name": "deepseek-v4.1-flash-abliterated",
+      "cost": [
+        {
+          "input": 0.2,
+          "output": 0.6,
+          "cache": {
+            "read": 0.05,
             "write": 0
           }
         }

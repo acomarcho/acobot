@@ -33,12 +33,13 @@ const RETRY_MS = 1000;
 
 type ModelInfo = Awaited<ReturnType<Oc['client']['model']['list']>>['data'][number];
 
-// The picker shows OpenCode Go models and OpenCode's free ones. Others (like models from an OpenAI login) stay out;
-// some of those claim a cost of 0 only because their price is unknown.
-const GO = 'opencode-go';
-const GROUPS = ['OpenCode Go', 'Free'];
+// The picker shows every model of these providers, under these headings, plus OpenCode's free ones.
+// Others (like models from an OpenAI login) stay out; some of those claim a cost of 0 only because their price is unknown.
+const PROVIDERS: Record<string, string> = { 'opencode-go': 'OpenCode Go', refuseless: 'Refuseless' };
+const GROUPS = [...Object.values(PROVIDERS), 'Free'];
 const free = (m: ModelInfo) => m.providerID === 'opencode' && m.cost.every((c) => !c.input && !c.output);
-const shown = (m: ModelInfo) => m.enabled && m.status !== 'deprecated' && (m.providerID === GO || free(m));
+const groupOf = (m: ModelInfo) => PROVIDERS[m.providerID] ?? (free(m) ? 'Free' : undefined);
+const shown = (m: ModelInfo) => m.enabled && m.status !== 'deprecated' && !!groupOf(m);
 const idOf = (m: Pick<ModelInfo, 'providerID' | 'modelID'>) => `${m.providerID}/${m.modelID}`;
 // `provider/model` as OpenCode wants it. Only the first slash splits: model names may have slashes of their own.
 const refOf = (id: string) => ({ providerID: id.slice(0, id.indexOf('/')), id: id.slice(id.indexOf('/') + 1) });
@@ -233,13 +234,13 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
     },
 
     // What can be picked, and what new chats start on: the saved default, else OpenCode's own, else the first one.
-    // A default that is no longer on the list (gone, or not Go or free) is passed over.
+    // A default that is no longer on the list (gone, or not one the picker shows) is passed over.
     async models(): Promise<Models> {
       const [list, fallback] = await Promise.all([client().model.list({}), client().model.default({})]);
       const models = list.data
         .filter(shown)
-        .map((m) => ({ id: idOf(m), name: m.name, group: m.providerID === GO ? 'OpenCode Go' : 'Free' }))
-        // Go first, then free; by name inside each.
+        .map((m) => ({ id: idOf(m), name: m.name, group: groupOf(m)! }))
+        // In GROUPS order; by name inside each.
         .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.name.localeCompare(b.name));
       const listed = (id?: string | null) => !!id && models.some((m) => m.id === id);
       const first = [getSetting(db, 'defaultModel'), fallback.data && idOf(fallback.data), models[0]?.id];
