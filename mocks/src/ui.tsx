@@ -3,6 +3,7 @@ import {
   ArrowUp,
   Check,
   ChevronRight,
+  Clock,
   FilePen,
   FilePlus,
   FileText,
@@ -23,6 +24,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Streamdown } from 'streamdown';
 import { BOT, ME, type Chat, type Msg, type Part, type Tool } from './data';
 import { useStore } from './store';
+import { AutoCard } from './auto';
 
 const plugins = { code };
 
@@ -52,7 +54,7 @@ export function Blob({ seed, size = 40 }: { seed: string; size?: number }) {
   const h = seed === BOT ? 0 : hash(seed);
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className="shrink-0">
-      <path d={SHAPES[h % SHAPES.length]} fill={COLORS[(h >> 3) % COLORS.length]} />
+      <path d={SHAPES[h % SHAPES.length]} fill={COLORS[(h >>> 3) % COLORS.length]} />
       <rect x="38" y="44" width="6" height="14" rx="3" fill="#111" />
       <rect x="56" y="44" width="6" height="14" rx="3" fill="#111" />
     </svg>
@@ -93,6 +95,7 @@ export function Row({ chat, active, onClick, avatar }: { chat: Chat; active?: bo
       {avatar ?? <Blob seed={chat.id} />}
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
+          {chat.automationId && <Clock aria-label="Started by an automation" className="size-3.5 shrink-0 self-center text-muted-foreground" />}
           <span className={`min-w-0 flex-1 truncate ${chat.unread ? 'font-semibold' : 'font-medium'}`}>{chat.title}</span>
           <span className="shrink-0 text-xs text-muted-foreground">{chat.when}</span>
         </span>
@@ -259,6 +262,7 @@ function BotMsg({ chat, msg }: { chat: Chat; msg: Msg }) {
           ) : null;
         if (b.kind === 'ask') return <AskCard key={i} chatId={chat.id} part={b} />;
         if (b.kind === 'question') return <QuestionCard key={i} chatId={chat.id} part={b} />;
+        if (b.kind === 'auto') return <AutoCard key={i} autoId={b.autoId} />;
         if (b.kind === 'note') return <p key={i} className="w-full py-1 text-center text-xs text-muted-foreground">{b.text}</p>;
         return null;
       })}
@@ -295,7 +299,26 @@ export function Messages({ chat }: { chat: Chat }) {
 }
 
 // Grok Bot-style pill: plus on the left, mic when empty, send when typed, stop while working.
-export function Composer({ chat, onSent, placeholder = `Message ${BOT}` }: { chat?: Chat; onSent?: (id: string) => void; placeholder?: string }) {
+export function Composer({
+  chat,
+  onSent,
+  placeholder = `Message ${BOT}`,
+  submitWith,
+  tools,
+  above,
+  sendLabel,
+}: {
+  chat?: Chat;
+  onSent?: (id: string) => void;
+  placeholder?: string;
+  // Replaces the normal send. Gives back the chat id to go to, or undefined to stay.
+  submitWith?: (text: string) => string | undefined;
+  // Extra buttons next to the attach button.
+  tools?: ReactNode;
+  // Shown on top of the pill, inside it.
+  above?: ReactNode;
+  sendLabel?: string;
+}) {
   const { send, stop } = useStore();
   const [text, setText] = useState('');
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -309,9 +332,9 @@ export function Composer({ chat, onSent, placeholder = `Message ${BOT}` }: { cha
 
   const submit = () => {
     if (!text.trim() || busy) return;
-    const id = send(chat?.id, text.trim());
+    const id = submitWith ? submitWith(text.trim()) : send(chat?.id, text.trim());
     setText('');
-    onSent?.(id);
+    if (id) onSent?.(id);
   };
 
   return (
@@ -320,11 +343,14 @@ export function Composer({ chat, onSent, placeholder = `Message ${BOT}` }: { cha
         e.preventDefault();
         submit();
       }}
-      className="flex items-end gap-1 rounded-[22px] border border-border bg-card p-1.5"
+      className="rounded-[22px] border border-border bg-card p-1.5"
     >
+      {above}
+      <div className="flex items-end gap-1">
       <button type="button" aria-label="Attach" className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted">
         <Plus className="size-5" />
       </button>
+      {tools}
       <textarea
         ref={ref}
         rows={1}
@@ -342,6 +368,8 @@ export function Composer({ chat, onSent, placeholder = `Message ${BOT}` }: { cha
         <button type="button" aria-label="Stop" onClick={() => stop(chat!.id)} className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
           <Square className="size-3 fill-current" />
         </button>
+      ) : text.trim() && sendLabel ? (
+        <button className="h-8 shrink-0 rounded-full bg-primary px-3 text-sm font-medium text-primary-foreground">{sendLabel}</button>
       ) : text.trim() ? (
         <button aria-label="Send" className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
           <ArrowUp className="size-4.5" />
@@ -351,6 +379,7 @@ export function Composer({ chat, onSent, placeholder = `Message ${BOT}` }: { cha
           <Mic className="size-4" />
         </button>
       )}
+      </div>
     </form>
   );
 }

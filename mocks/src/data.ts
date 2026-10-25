@@ -8,7 +8,9 @@ export type Part =
   | { kind: 'tool'; tool: Tool; title: string; output?: string; state: 'running' | 'done' | 'error' }
   | { kind: 'ask'; tool: Tool; title: string; state: 'pending' | 'allowed' | 'denied' }
   | { kind: 'question'; text: string; options: string[]; picked?: string }
-  | { kind: 'note'; text: string };
+  | { kind: 'note'; text: string }
+  // A card for an automation the bot set up from the chat (mock E).
+  | { kind: 'auto'; autoId: string };
 
 export type Msg = { id: string; role: 'user' | 'bot'; parts: Part[] };
 
@@ -21,8 +23,35 @@ export type Chat = {
   status: Status;
   unread?: boolean;
   routine?: string;
+  // The automation that started this chat, if one did.
+  automationId?: string;
   msgs: Msg[];
 };
+
+export type Access = 'ask' | 'full';
+export const BOTS = ['General agent', 'Coding agent'];
+
+// A message sent to a bot in a fresh chat at set times. `days`: 0 is Monday. `draft`: proposed in a chat, not
+// turned on yet (mock E).
+export type Automation = {
+  id: string;
+  name: string;
+  text: string;
+  bot: string;
+  access: Access;
+  time: string;
+  days: number[];
+  on: boolean;
+  draft?: boolean;
+  // The chat it was made in (mock E).
+  fromChat?: string;
+};
+
+export const AUTOS: Automation[] = [
+  { id: 'briefing', name: 'Morning briefing', text: 'Check disk space, uptime and my GitHub notifications. Sum it up in 3 lines.', bot: 'General agent', access: 'full', time: '08:00', days: [0, 1, 2, 3, 4, 5, 6], on: true },
+  { id: 'prs', name: 'PR review digest', text: 'List open PRs in ~/personal that wait on my review, oldest first, with one line each.', bot: 'Coding agent', access: 'full', time: '09:00', days: [0, 1, 2, 3, 4], on: true },
+  { id: 'caches', name: 'Clear old caches', text: 'Find caches over 5G that are older than 30 days and clear them. Ask before deleting.', bot: 'General agent', access: 'ask', time: '02:00', days: [6], on: false },
+];
 
 export const ME = 'Marcho';
 export const BOT = 'acobot';
@@ -78,7 +107,9 @@ export const SEED: Chat[] = [
     status: 'idle',
     unread: true,
     routine: 'Every day at 8:00 AM',
+    automationId: 'briefing',
     msgs: [
+      me('m0', 'Check disk space, uptime and my GitHub notifications. Sum it up in 3 lines.'),
       {
         id: 'm1',
         role: 'bot',
@@ -86,6 +117,24 @@ export const SEED: Chat[] = [
           { kind: 'tool', tool: 'bash', title: 'df -h / && uptime', state: 'done' },
           { kind: 'tool', tool: 'webfetch', title: 'github.com/notifications', state: 'done' },
           say('Morning. Disk is at **76%**, up 3 days. **4** PRs waiting on your review, 1 failed nightly build in `acocrew`.'),
+        ],
+      },
+    ],
+  },
+  {
+    id: 'prs-1',
+    title: 'PR review digest',
+    when: 'Friday',
+    status: 'idle',
+    automationId: 'prs',
+    msgs: [
+      me('m0', 'List open PRs in ~/personal that wait on my review, oldest first, with one line each.'),
+      {
+        id: 'm1',
+        role: 'bot',
+        parts: [
+          { kind: 'tool', tool: 'bash', title: 'gh search prs --review-requested=@me --state=open', state: 'done' },
+          say('3 PRs wait on you:\n\n1. **acocrew#212** fix worktree cleanup (4 days)\n2. **acobot#18** bot avatars (2 days)\n3. **lpm#40** bump deps (today)'),
         ],
       },
     ],
