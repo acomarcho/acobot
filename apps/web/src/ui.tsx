@@ -16,6 +16,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Clock,
   FileIcon,
   FilePen,
   FileText,
@@ -130,7 +131,7 @@ const BUSY = {
   needs: { label: 'Needs you', text: 'text-warn', dot: 'bg-warn' },
 };
 
-function Preview({ chat }: { chat: Chat }) {
+export function Preview({ chat }: { chat: Chat }) {
   const now = useNow(chat.status !== 'idle');
   if (chat.status === 'idle') return <>{chat.preview.replace(/[*`#>]/g, '')}</>;
   const busy = BUSY[chat.status];
@@ -171,6 +172,12 @@ export function Row({
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
+            {chat.automationId && (
+              <Clock
+                aria-label="Started by an automation"
+                className="size-3.5 shrink-0 self-center text-muted-foreground"
+              />
+            )}
             <span className={`min-w-0 flex-1 truncate ${chat.unread ? 'font-semibold' : 'font-medium'}`}>
               {chat.title}
             </span>

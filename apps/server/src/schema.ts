@@ -10,6 +10,25 @@ export const bots = sqliteTable('bots', {
   createdAt: integer('created_at').notNull(),
 });
 
+// A message sent to a bot in a fresh chat at set times. See automations.ts.
+export const automations = sqliteTable('automations', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  text: text('text').notNull(),
+  botId: text('bot_id')
+    .notNull()
+    .references(() => bots.id),
+  model: text('model').notNull(),
+  access: text('access').$type<Access>().notNull(),
+  // 'HH:MM' on the server's clock, and the days of the week it runs on (0 is Monday).
+  time: text('time').notNull(),
+  days: text('days', { mode: 'json' }).$type<number[]>().notNull(),
+  on: integer('on', { mode: 'boolean' }).notNull(),
+  // The moment it runs next. Empty while it is paused.
+  nextAt: integer('next_at'),
+  createdAt: integer('created_at').notNull(),
+});
+
 // One chat is one OpenCode session.
 export const chats = sqliteTable('chats', {
   id: text('id').primaryKey(),
@@ -26,6 +45,8 @@ export const chats = sqliteTable('chats', {
   // When the status last changed, so the list can show how long a chat has been working or waiting.
   statusAt: integer('status_at').notNull().default(0),
   unread: integer('unread', { mode: 'boolean' }).notNull().default(false),
+  // The automation that started it. Empty when a person did, and emptied when that automation is deleted.
+  automationId: text('automation_id').references(() => automations.id, { onDelete: 'set null' }),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });

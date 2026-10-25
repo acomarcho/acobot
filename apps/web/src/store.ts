@@ -1,12 +1,15 @@
 import {
+  AUTOMATIONS_PATH,
   WS_PATH,
   type Access,
+  type Automation,
   type Bot,
   type Chat,
   type ClientEvent,
   type Decision,
   type Item,
   type Models,
+  type NewAutomation,
   type NewBot,
   type NewChat,
   type NewMessage,
@@ -20,6 +23,8 @@ type State = {
   ready: boolean;
   online: boolean;
   chats: Chat[];
+  // Newest first.
+  automations: Automation[];
   // The chat on screen. `items` is null until the server has sent what is in it.
   openId: string | null;
   items: Item[] | null;
@@ -27,7 +32,7 @@ type State = {
 
 type Action = ServerEvent | { type: 'open'; chatId: string | null } | { type: 'offline' };
 
-const START: State = { ready: false, online: false, chats: [], openId: null, items: null };
+const START: State = { ready: false, online: false, chats: [], automations: [], openId: null, items: null };
 
 const upsert = <T extends { id: string }>(list: T[], next: T) =>
   list.some((x) => x.id === next.id) ? list.map((x) => (x.id === next.id ? next : x)) : [next, ...list];
@@ -37,7 +42,7 @@ function reduce(state: State, action: Action): State {
   if ('chatId' in action && action.type !== 'open' && action.chatId !== state.openId) return state;
   switch (action.type) {
     case 'hello':
-      return { ...state, ready: true, online: true, chats: action.chats };
+      return { ...state, ready: true, online: true, chats: action.chats, automations: action.automations };
     case 'offline':
       return { ...state, online: false };
     case 'chat': {
@@ -47,6 +52,10 @@ function reduce(state: State, action: Action): State {
       const chats = upsert(state.chats, action.chat).sort((a, b) => b.updatedAt - a.updatedAt);
       return { ...state, chats };
     }
+    case 'automation':
+      return { ...state, automations: upsert(state.automations, action.automation) };
+    case 'automation-gone':
+      return { ...state, automations: state.automations.filter((a) => a.id !== action.id) };
     case 'deleted':
       return { ...state, chats: state.chats.filter((c) => c.id !== action.id) };
     case 'open':
@@ -138,6 +147,22 @@ export function useAppState() {
   const answerForm = (chatId: string, formId: string, answer: Record<string, string | string[]>) =>
     request(`/api/chats/${chatId}/forms/${formId}`, { answer });
   const stop = (chatId: string) => request(`/api/chats/${chatId}/stop`, {});
+  // Adds an automation, or changes the one with `id`.
+  const saveAutomation = async (body: NewAutomation, id?: string) => {
+    const automation = await request<Automation>(id ? `${AUTOMATIONS_PATH}/${id}` : AUTOMATIONS_PATH, body);
+    dispatch({ type: 'automation', automation });
+    return automation;
+  };
+  const deleteAutomation = async (id: string) => {
+    await request(`${AUTOMATIONS_PATH}/${id}/delete`, {});
+    dispatch({ type: 'automation-gone', id });
+  };
+  // Starts a run now, and gives back its chat.
+  const runAutomation = async (id: string) => {
+    const chat = await request<Chat>(`${AUTOMATIONS_PATH}/${id}/run`, {});
+    dispatch({ type: 'chat', chat });
+    return chat;
+  };
 
   return {
     ...state,
@@ -151,6 +176,9 @@ export function useAppState() {
     answer,
     answerForm,
     stop,
+    saveAutomation,
+    deleteAutomation,
+    runAutomation,
   };
 }
 
