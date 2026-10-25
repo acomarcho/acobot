@@ -1,11 +1,13 @@
 import {
   WS_PATH,
   type Access,
+  type Bot,
   type Chat,
   type ClientEvent,
   type Decision,
   type Item,
   type Models,
+  type NewBot,
   type NewChat,
   type NewMessage,
   type ServerEvent,
@@ -165,4 +167,19 @@ export function useModels() {
   }, []);
   const setDefault = async (settings: Partial<Settings>) => setModels(await request<Models>('/api/settings', settings));
   return { models, setDefault };
+}
+
+// The bots, fetched each time a screen that needs them opens. Empty while loading.
+export function useBots() {
+  const [bots, setBots] = useState<Bot[]>([]);
+  useEffect(() => {
+    request<Bot[]>('/api/bots').then(setBots, () => {});
+  }, []);
+  // Adds a bot, or changes the one with `id`.
+  const save = async (bot: NewBot, id?: string) => {
+    const saved = await request<Bot>(id ? `/api/bots/${id}` : '/api/bots', bot);
+    setBots((list) => (id ? list.map((b) => (b.id === id ? saved : b)) : [...list, saved]));
+    return saved;
+  };
+  return { bots, save };
 }

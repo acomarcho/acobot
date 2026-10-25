@@ -1,11 +1,11 @@
-import type { Chat, Command, FileRef, Item, Models, ServerEvent } from '@acobot/shared';
+import type { Bot, Chat, Command, FileRef, Item, Models, ServerEvent } from '@acobot/shared';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vite-plus/test';
 import { WebSocket } from 'ws';
 import { DEFAULT_BOT, loadItems, openDb, saveItem, setSetting, type Db } from './db.ts';
 import type { OcEvent } from './opencode.ts';
-import { DECLINED, RULES, skillsIn, type Oc } from './runner.ts';
+import { DECLINED, rulesOf, skillsIn, type Oc } from './runner.ts';
 import { chats } from './schema.ts';
 import { startServer } from './server.ts';
 import { recording } from './fixtures/recording.ts';
@@ -114,9 +114,12 @@ const closers: (() => void)[] = [];
 afterEach(() => closers.splice(0).forEach((close) => close()));
 
 async function boot(oc: Oc, db: Db = openDb(':memory:')) {
-  const uploads = mkdtempSync(join(WORK + '-'));
-  closers.push(() => rmSync(uploads, { recursive: true, force: true }));
-  const server = await startServer(0, { db, home: '/home/test', uploads });
+  // The home folder, with acobot's data in it like on a real machine.
+  const home = mkdtempSync(join(WORK + '-'));
+  closers.push(() => rmSync(home, { recursive: true, force: true }));
+  const uploads = join(home, '.acobot', 'uploads');
+  const bots = join(home, '.acobot', 'bots');
+  const server = await startServer(0, { db, home, uploads, bots });
   closers.push(server.close);
   server.runner.attach(oc);
   const base = `http://127.0.0.1:${server.port}`;
@@ -124,7 +127,7 @@ async function boot(oc: Oc, db: Db = openDb(':memory:')) {
     const res = await fetch(base + path, { method: 'POST', body: JSON.stringify(body) });
     return { status: res.status, body: (await res.json()) as any };
   };
-  return { base, post, db, server, uploads };
+  return { base, post, db, server, home, uploads, bots };
 }
 
 // A browser: keeps the chat list and the items of the chat it has open, like the web app does.
@@ -166,21 +169,19 @@ const kinds = (items: Map<string, Item>) => [...items.values()].sort((a, b) => a
 
 test('a new chat starts a session with the bot prompt and streams the answer to an open browser', async () => {
   const fake = fakeOpencode('chat');
-  const { base, post } = await boot(fake.oc);
+  const { base, post, home } = await boot(fake.oc);
   const b = await browser(base);
   const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
   await b.open(chat.id);
   await until(() => b.chats.get(chat.id)?.status === 'idle');
+  expect(chat.botId).toBe(DEFAULT_BOT.id);
   expect(fake.calls.create[0]).toEqual({
-    location: { directory: '/home/test' },
+    location: { directory: home },
     model: { providerID: 'opencode-go', id: 'kimi-k3.1-pro' },
-    permissions: RULES.ask,
+    permissions: rulesOf('ask', '.acobot/bots/acobot/MEMORY.md'),
   });
-  expect(fake.calls.instructions[0]).toEqual({
-    sessionID: fake.sessionId(),
-    key: 'acobot.bot',
-    value: DEFAULT_BOT.prompt,
-  });
+  expect(fake.calls.instructions[0]).toMatchObject({ sessionID: fake.sessionId(), key: 'acobot.bot' });
+  expect(fake.calls.instructions[0].value.startsWith(DEFAULT_BOT.prompt)).toBe(true);
   expect(fake.calls.prompt[0]).toMatchObject({ sessionID: fake.sessionId(), text: 'say hi', files: [] });
   expect(chat.title).toBe('say hi');
   expect(kinds(b.items)).toEqual(['message', 'message']);
@@ -315,7 +316,10 @@ test('switching to full access changes the session rules', async () => {
   const { body: chat } = await post('/api/chats', { text: 'hi', files: [], access: 'ask', model: MODEL });
   const res = await post(`/api/chats/${chat.id}/access`, { access: 'full' });
   expect(res.body.access).toBe('full');
-  expect(fake.calls.update[0]).toEqual({ sessionID: fake.sessionId(), permissions: RULES.full });
+  expect(fake.calls.update[0]).toEqual({
+    sessionID: fake.sessionId(),
+    permissions: rulesOf('full', '.acobot/bots/acobot/MEMORY.md'),
+  });
   await until(() => b.chats.get(chat.id)?.access === 'full');
   expect((await post(`/api/chats/${chat.id}/access`, { access: 'root' })).status).toBe(400);
 });
@@ -530,7 +534,7 @@ test('the default access is saved in settings, and a chat without one starts on 
   expect((await post('/api/settings', { defaultAccess: 'root' })).status).toBe(400);
   const plain = await post('/api/chats', { text: 'hi', files: [], model: MODEL });
   expect(plain.body.access).toBe('full');
-  expect(fake.calls.create[0].permissions).toEqual(RULES.full);
+  expect(fake.calls.create[0].permissions).toEqual(rulesOf('full', '.acobot/bots/acobot/MEMORY.md'));
   // An access sent with the chat is used instead, so a bad one is refused.
   expect((await post('/api/chats', { text: 'hi', files: [], access: 'root' })).status).toBe(400);
 });
@@ -614,7 +618,7 @@ test('when no title can be written the chat keeps its first line', async () => {
 
 test("what / suggests is acobot's commands, then the skills OpenCode finds from home, without their contents", async () => {
   const fake = fakeOpencode('chat');
-  const { base } = await boot(fake.oc);
+  const { base, home } = await boot(fake.oc);
   const list = (await (await fetch(base + '/api/commands')).json()) as Command[];
   expect(list.filter((c) => !c.skill).map((c) => c.name)).toEqual(['compact']);
   expect(list.filter((c) => c.skill).map((c) => c.name)).toEqual(
@@ -626,10 +630,7 @@ test("what / suggests is acobot's commands, then the skills OpenCode finds from 
     skill: true,
   });
   // Asked once right away, so OpenCode has them ready, then for the request.
-  expect(fake.calls.skills).toEqual([
-    { location: { directory: '/home/test' } },
-    { location: { directory: '/home/test' } },
-  ]);
+  expect(fake.calls.skills).toEqual([{ location: { directory: home } }, { location: { directory: home } }]);
 });
 
 test('a skill picked with /name is loaded by OpenCode for that turn', async () => {
@@ -679,7 +680,7 @@ test('the built app is checked with the server on each open, except build-named 
   writeFileSync(join(web, 'index.html'), '<!doctype html>');
   writeFileSync(join(web, 'manifest.webmanifest'), '{}');
   writeFileSync(join(web, 'assets', 'index-abc123.js'), '');
-  const server = await startServer(0, { db: openDb(':memory:'), home: '/home/test', uploads: web, web });
+  const server = await startServer(0, { db: openDb(':memory:'), home: web, uploads: web, bots: web, web });
   closers.push(server.close);
   const cache = async (path: string) => {
     const res = await fetch(`http://127.0.0.1:${server.port}${path}`);
@@ -690,4 +691,58 @@ test('the built app is checked with the server on each open, except build-named 
   expect(await cache('/chat/some-id')).toBe('no-cache');
   expect(await cache('/manifest.webmanifest')).toBe('no-cache');
   expect(await cache('/assets/index-abc123.js')).toBeNull();
+});
+
+test('bots can be added and edited, each needs a name, and acobot is there from the start', async () => {
+  const { base, post, bots } = await boot(fakeOpencode('chat').oc);
+  const list = async () => (await (await fetch(base + '/api/bots')).json()) as Bot[];
+  expect(await list()).toEqual([{ ...DEFAULT_BOT, memory: join(bots, 'acobot', 'MEMORY.md') }]);
+  const { body: coder } = await post('/api/bots', { name: ' Coder ', prompt: 'You write code.' });
+  expect(coder).toMatchObject({ name: 'Coder', prompt: 'You write code.', memory: join(bots, coder.id, 'MEMORY.md') });
+  const res = await post(`/api/bots/${coder.id}`, { name: 'Coder', prompt: 'You write tidy code.' });
+  expect(res.body.prompt).toBe('You write tidy code.');
+  expect((await list()).map((b) => b.name)).toEqual(['acobot', 'Coder']);
+  expect((await post('/api/bots', { name: '  ', prompt: 'x' })).status).toBe(400);
+  expect((await post('/api/bots', { name: 'x', prompt: 3 })).status).toBe(400);
+  expect((await post('/api/bots/nope', { name: 'x', prompt: 'x' })).status).toBe(404);
+});
+
+test('a chat starts with its bot: the soul, where its memory lives, then that memory, and each bot has its own', async () => {
+  const fake = fakeOpencode('chat');
+  const { post, bots } = await boot(fake.oc);
+  const { body: coder } = await post('/api/bots', { name: 'Coder', prompt: 'You write code.' });
+  const memory = join(bots, coder.id, 'MEMORY.md');
+  mkdirSync(join(bots, coder.id), { recursive: true });
+  writeFileSync(memory, '- The user likes tabs.\n');
+
+  const { body: chat } = await post('/api/chats', {
+    text: 'hi',
+    files: [],
+    access: 'ask',
+    model: MODEL,
+    botId: coder.id,
+  });
+  expect(chat.botId).toBe(coder.id);
+  const brief: string = fake.calls.instructions[0].value;
+  expect(brief.startsWith('You write code.')).toBe(true);
+  expect(brief).toContain(memory);
+  // The memory comes last, so the part before it stays the same from chat to chat.
+  expect(brief.trimEnd().endsWith('- The user likes tabs.\n</memory>')).toBe(true);
+  // Ask first, but the bot may write its own memory, and only its own.
+  expect(fake.calls.create[0].permissions).toEqual(rulesOf('ask', `.acobot/bots/${coder.id}/MEMORY.md`));
+  expect(fake.calls.create[0].permissions.at(-1)).toEqual({
+    action: 'edit',
+    resource: `.acobot/bots/${coder.id}/MEMORY.md`,
+    effect: 'allow',
+  });
+
+  // acobot gets its own memory file, made empty on its first chat, and never sees the coder's.
+  await post('/api/chats', { text: 'hi', files: [], access: 'ask', model: MODEL });
+  const plain: string = fake.calls.instructions[1].value;
+  expect(plain.startsWith(DEFAULT_BOT.prompt)).toBe(true);
+  expect(plain).toContain(join(bots, 'acobot', 'MEMORY.md'));
+  expect(plain).not.toContain('tabs');
+  expect(readFileSync(join(bots, 'acobot', 'MEMORY.md'), 'utf8')).toBe('');
+
+  expect((await post('/api/chats', { text: 'hi', files: [], model: MODEL, botId: 'nope' })).status).toBe(400);
 });

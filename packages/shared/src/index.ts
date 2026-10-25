@@ -14,6 +14,7 @@ export const ACCESS: { id: Access; name: string; hint: string }[] = [
 // One chat is one OpenCode session.
 export type Chat = {
   id: string;
+  // The bot it talks to. It stays the same for the whole chat.
   botId: string;
   title: string;
   // The start of the last thing said.
@@ -74,8 +75,13 @@ export const DECISIONS: Decision[] = ['once', 'always', 'reject'];
 
 // What the browser sends to start a chat or add to one. `files` are ids from an earlier upload.
 export type NewMessage = { text: string; files: string[] };
-// Without `access` or `model` the chat starts on the default one.
-export type NewChat = NewMessage & { access?: Access; model?: string };
+// Without `access`, `model` or `botId` the chat starts on the default one.
+export type NewChat = NewMessage & { access?: Access; model?: string; botId?: string };
+
+// A bot: a name and a prompt (its character) that starts every chat it is in. `memory` is the file it keeps notes
+// in for later chats; what is in it when a chat starts goes along too.
+export type NewBot = { name: string; prompt: string };
+export type Bot = NewBot & { id: string; memory: string };
 
 // Picked by typing `/name` in a message: one of acobot's commands, or a skill OpenCode can load.
 export type Command = { name: string; description: string; skill: boolean };

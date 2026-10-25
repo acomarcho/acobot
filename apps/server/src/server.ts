@@ -8,6 +8,7 @@ import {
   type Access,
   type ClientEvent,
   type Decision,
+  type NewBot,
   type NewMessage,
 } from '@acobot/shared';
 import { serve, upgradeWebSocket } from '@hono/node-server';
@@ -16,14 +17,15 @@ import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { readFileSync } from 'node:fs';
 import { WebSocketServer } from 'ws';
-import { listChats, loadItems, setSetting, type Db } from './db.ts';
+import { openBots } from './bots.ts';
+import { DEFAULT_BOT, listChats, loadItems, setSetting, type Db } from './db.ts';
 import { openFiles } from './files.ts';
 import { createHub } from './hub.ts';
 import { createRunner } from './runner.ts';
 
-// `home`: the folder OpenCode sessions start in. `uploads`: where uploaded files are kept.
-// `web`: the built web app, if there is one.
-export type Deps = { db: Db; home: string; uploads: string; web?: string };
+// `home`: the folder OpenCode sessions start in. `uploads`: where uploaded files are kept. `bots`: where each bot
+// keeps its memory. `web`: the built web app, if there is one.
+export type Deps = { db: Db; home: string; uploads: string; bots: string; web?: string };
 
 const isAccess = (value: unknown): value is Access => ACCESS.some((a) => a.id === value);
 
@@ -35,10 +37,18 @@ function readMessage(body: Record<string, unknown>, known: (id: unknown) => bool
   return { text, files };
 }
 
-export function createApp({ db, home, uploads, web }: Deps) {
+// A bot's name (trimmed, not empty) and prompt, or null.
+function readBot(body: Record<string, unknown>): NewBot | null {
+  const name = typeof body.name === 'string' ? body.name.trim().slice(0, 40) : '';
+  if (!name || typeof body.prompt !== 'string') return null;
+  return { name, prompt: body.prompt.trim() };
+}
+
+export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
   const hub = createHub();
   const files = openFiles(uploads);
-  const runner = createRunner(db, hub, files, { home });
+  const bots = openBots(db, botsDir);
+  const runner = createRunner(db, hub, files, bots, { home });
   const known = (id: unknown) => files.find(id) !== null;
   // A model that can be picked right now, or undefined.
   const pickable = async (id: unknown) => (await runner.models()).models.find((m) => m.id === id);
@@ -67,9 +77,25 @@ export function createApp({ db, home, uploads, web }: Deps) {
     const { models, default: fallback, defaultAccess } = await runner.models();
     const model = body.model ?? fallback;
     const access = body.access ?? defaultAccess;
-    if (!message || !isAccess(access) || !models.some((m) => m.id === model))
-      return c.json({ error: 'Needs words or files, an access mode and a model you can pick.' }, 400);
-    return c.json(await runner.create({ ...message, access, model }));
+    const bot = bots.get(body.botId ?? DEFAULT_BOT.id);
+    if (!message || !isAccess(access) || !models.some((m) => m.id === model) || !bot)
+      return c.json({ error: 'Needs words or files, an access mode, a model you can pick and a bot.' }, 400);
+    return c.json(await runner.create({ ...message, access, model, botId: bot.id }));
+  });
+
+  app.get('/api/bots', (c) => c.json(bots.list()));
+
+  app.post('/api/bots', async (c) => {
+    const bot = readBot(await c.req.json().catch(() => ({})));
+    return bot ? c.json(bots.add(bot)) : c.json({ error: 'A bot needs a name.' }, 400);
+  });
+
+  // A changed prompt is used from the bot's next chat on.
+  app.post('/api/bots/:id', async (c) => {
+    const bot = readBot(await c.req.json().catch(() => ({})));
+    if (!bot) return c.json({ error: 'A bot needs a name.' }, 400);
+    const saved = bots.edit(c.req.param('id'), bot);
+    return saved ? c.json(saved) : c.json({ error: 'Bot not found.' }, 404);
   });
 
   app.post('/api/chats/:id/messages', async (c) => {
