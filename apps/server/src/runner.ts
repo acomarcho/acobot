@@ -315,12 +315,14 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
     // `body.model` must be one from models(), and `body.botId` a bot.
     async create(body: Required<NewChat>): Promise<Chat> {
       const bot = bots.get(body.botId)!;
+      // Read first: if the memory cannot be read, no session is left behind.
+      const brief = bots.brief(bot);
       const session = await client().session.create({
         location: { directory: opts.home },
         model: refOf(body.model),
         permissions: rules(body.access, bot),
       });
-      await client().session.instructions.entry.put({ sessionID: session.id, key: BOT_KEY, value: bots.brief(bot) });
+      await client().session.instructions.entry.put({ sessionID: session.id, key: BOT_KEY, value: brief });
       const now = Date.now();
       const chat = db
         .insert(chats)

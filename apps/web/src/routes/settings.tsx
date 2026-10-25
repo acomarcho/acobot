@@ -46,6 +46,7 @@ function BotForm({
       <input
         aria-label="Name"
         placeholder="Name"
+        maxLength={40}
         value={name}
         onChange={(e) => setName(e.target.value)}
         className={field}
