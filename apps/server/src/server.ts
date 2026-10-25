@@ -94,6 +94,11 @@ export function createApp({ db, home, uploads, web }: Deps) {
     return chat ? c.json(chat) : c.json({ error: 'Chat not found.' }, 404);
   });
 
+  app.post('/api/chats/:id/delete', async (c) => {
+    const ok = await runner.remove(c.req.param('id'));
+    return ok ? c.json({ ok }) : c.json({ error: 'Chat not found.' }, 404);
+  });
+
   app.post('/api/chats/:id/title', async (c) => {
     if (!runner.has(c.req.param('id'))) return c.json({ error: 'Chat not found.' }, 404);
     return c.json(await runner.retitle(c.req.param('id')));

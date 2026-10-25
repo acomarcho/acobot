@@ -17,7 +17,7 @@ import { chatCols, DEFAULT_BOT, getSetting, loadItems, saveItem, type Db } from 
 import type { Files } from './files.ts';
 import type { Hub } from './hub.ts';
 import { sessionOf, type Opencode } from './opencode.ts';
-import { bots, chats } from './schema.ts';
+import { bots, chats, events } from './schema.ts';
 import { createTranslator, nextAt, type Out } from './translate.ts';
 
 // The part of a running OpenCode server the runner needs. Tests pass a stand-in.
@@ -220,6 +220,9 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
         })),
       });
     } catch (err) {
+      // A chat deleted while this was waiting has nowhere to put the error. Nothing awaits `send`, so a throw here
+      // would bring the server down.
+      if (!row(chatId)) return;
       apply(chatId, [
         {
           type: 'item',
@@ -379,6 +382,23 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
     },
 
     has: (chatId: string) => row(chatId) !== undefined,
+
+    // Deletes the chat for good, and its OpenCode session, which also stops it. The chat goes even when OpenCode
+    // cannot remove the session (not running, or the session is already gone). False when there is no such chat.
+    async remove(chatId: string) {
+      const chat = row(chatId);
+      if (!chat) return false;
+      await oc?.client.session
+        .remove({ sessionID: chat.sessionId })
+        .catch((err) => console.error('Could not remove an OpenCode session:', err.message));
+      db.transaction((tx) => {
+        tx.delete(events).where(eq(events.chatId, chatId)).run();
+        tx.delete(chats).where(eq(chats.id, chatId)).run();
+      });
+      translators.delete(chatId);
+      hub.toAll({ type: 'deleted', id: chatId });
+      return true;
+    },
 
     read(chatId: string) {
       if (row(chatId)?.unread) setChat(chatId, { unread: false }, false);
