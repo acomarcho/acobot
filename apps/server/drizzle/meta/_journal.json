@@ -22,6 +22,13 @@
       "when": 1792857173474,
       "tag": "0002_stale_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792912304290,
+      "tag": "0003_rename_default_bot",
+      "breakpoints": true
     }
   ]
 }
