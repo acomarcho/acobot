@@ -45,6 +45,8 @@ function reduce(state: State, action: Action): State {
       const chats = upsert(state.chats, action.chat).sort((a, b) => b.updatedAt - a.updatedAt);
       return { ...state, chats };
     }
+    case 'deleted':
+      return { ...state, chats: state.chats.filter((c) => c.id !== action.id) };
     case 'open':
       return { ...state, openId: action.chatId, items: null };
     case 'items':
@@ -125,13 +127,29 @@ export function useAppState() {
     const chat = await request<Chat>(`/api/chats/${chatId}/title`, {});
     dispatch({ type: 'chat', chat });
   };
+  const deleteChat = async (chatId: string) => {
+    await request(`/api/chats/${chatId}/delete`, {});
+    dispatch({ type: 'deleted', id: chatId });
+  };
   const answer = (chatId: string, requestId: string, decision: Decision) =>
     request(`/api/chats/${chatId}/asks/${requestId}`, { decision });
   const answerForm = (chatId: string, formId: string, answer: Record<string, string | string[]>) =>
     request(`/api/chats/${chatId}/forms/${formId}`, { answer });
   const stop = (chatId: string) => request(`/api/chats/${chatId}/stop`, {});
 
-  return { ...state, openChat, createChat, sendMessage, setAccess, setModel, retitle, answer, answerForm, stop };
+  return {
+    ...state,
+    openChat,
+    createChat,
+    sendMessage,
+    setAccess,
+    setModel,
+    retitle,
+    deleteChat,
+    answer,
+    answerForm,
+    stop,
+  };
 }
 
 export type App = ReturnType<typeof useAppState>;

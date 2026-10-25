@@ -91,6 +91,8 @@ export type Settings = { defaultModel: string; defaultAccess: Access };
 export type ServerEvent =
   | { type: 'hello'; chats: Chat[] }
   | { type: 'chat'; chat: Chat }
+  // A chat that was deleted. Not `chatId`: every browser drops it from the list, not only the one that has it open.
+  | { type: 'deleted'; id: string }
   | { type: 'items'; chatId: string; items: Item[] }
   | { type: 'item'; chatId: string; item: Item }
   // Words to add to the end of a bubble that is still being written.

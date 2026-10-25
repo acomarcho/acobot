@@ -2,7 +2,8 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, PanelRight, Plus, Search, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../store';
-import { Blob, Composer, Details, Messages, Row, SearchBox, ThemeButton, useStickToBottom } from '../ui';
+import type { Chat } from '@acobot/shared';
+import { Blob, Composer, DeleteDialog, Details, Messages, Row, SearchBox, ThemeButton, useStickToBottom } from '../ui';
 
 // `?c=` is the chat on screen, or `new` for the new chat screen. Without it, phones show the chat list.
 export const Route = createFileRoute('/')({
@@ -20,6 +21,7 @@ function Home() {
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
   const [details, setDetails] = useState(false);
+  const [deleting, setDeleting] = useState<Chat | null>(null);
   const chat = chats.find((x) => x.id === open);
   const { ref: scrollRef, onScroll } = useStickToBottom(items, open);
   const chatId = chat?.id ?? null;
@@ -27,6 +29,11 @@ function Home() {
   useEffect(() => {
     openChat(chatId);
   }, [chatId, openChat]);
+
+  // The chat on screen is gone (deleted here or anywhere else): show a new chat instead.
+  useEffect(() => {
+    if (open && open !== 'new' && !chat) void nav({ search: { c: 'new' }, replace: true });
+  }, [open, chat, nav]);
 
   // The tab says how many chats have something new or need you, so it shows from other tabs too.
   const waiting = chats.filter((x) => x.unread || x.status === 'needs').length;
@@ -65,7 +72,7 @@ function Home() {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">
           {list.map((x) => (
-            <Row key={x.id} chat={x} active={x.id === open} onClick={() => go(x.id)} />
+            <Row key={x.id} chat={x} active={x.id === open} onClick={() => go(x.id)} onDelete={() => setDeleting(x)} />
           ))}
           {!chats.length && (
             <button
@@ -131,6 +138,8 @@ function Home() {
           <Blob size={56} />
         </main>
       )}
+
+      {deleting && <DeleteDialog chat={deleting} onClose={() => setDeleting(null)} />}
 
       {chat && details && (
         <aside className="fixed inset-0 z-20 bg-background pt-[env(safe-area-inset-top)] lg:static lg:w-80 lg:shrink-0 lg:border-l lg:border-border lg:bg-sidebar">

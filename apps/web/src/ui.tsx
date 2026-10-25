@@ -28,6 +28,7 @@ import {
   Sparkles,
   Square,
   Terminal,
+  Trash2,
   Wrench,
   X,
   type LucideIcon,
@@ -137,36 +138,100 @@ function Preview({ chat }: { chat: Chat }) {
   );
 }
 
-export function Row({ chat, active, onClick }: { chat: Chat; active: boolean; onClick: () => void }) {
+// With a mouse, a trash button shows on hover. On a touch screen, swiping the row left shows Delete: the row scrolls
+// sideways and snaps open or shut, so the browser does the dragging.
+export function Row({
+  chat,
+  active,
+  onClick,
+  onDelete,
+}: {
+  chat: Chat;
+  active: boolean;
+  onClick: () => void;
+  onDelete: () => void;
+}) {
   return (
-    <button
-      onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left ${active ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent/60'}`}
+    <div className="group relative flex snap-x snap-mandatory overflow-x-hidden overscroll-x-contain rounded-xl [scrollbar-width:none] pointer-coarse:overflow-x-auto">
+      <button
+        onClick={onClick}
+        className={`flex w-full shrink-0 snap-start items-center gap-3 px-2.5 py-2 text-left ${active ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent/60'}`}
+      >
+        <span className="relative shrink-0">
+          <Blob seed={chat.id} />
+          {chat.status !== 'idle' && (
+            <span
+              className={`absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-sidebar ${BUSY[chat.status].dot}`}
+              aria-label={BUSY[chat.status].label}
+            />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-2">
+            <span className={`min-w-0 flex-1 truncate ${chat.unread ? 'font-semibold' : 'font-medium'}`}>
+              {chat.title}
+            </span>
+            <span className="shrink-0 text-xs text-muted-foreground group-hover:invisible">{when(chat.updatedAt)}</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+              <Preview chat={chat} />
+            </span>
+            {chat.unread && (
+              <span className="size-2 shrink-0 rounded-full bg-accent group-hover:invisible" aria-label="Unread" />
+            )}
+          </span>
+        </span>
+      </button>
+      <button
+        onClick={onDelete}
+        aria-label="Delete chat"
+        className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-bad focus-visible:opacity-100 pointer-coarse:hidden"
+      >
+        <Trash2 className="size-4" />
+      </button>
+      <button
+        // Shut the row again, so it is closed whether the chat is deleted or not.
+        onClick={(e) => (e.currentTarget.parentElement!.scrollTo({ left: 0, behavior: 'smooth' }), onDelete())}
+        className="hidden w-20 shrink-0 snap-end bg-bad text-sm font-medium text-white pointer-coarse:block"
+      >
+        Delete
+      </button>
+    </div>
+  );
+}
+
+// Asks before a chat is deleted for good. Cancel, Esc or a tap outside closes it.
+export function DeleteDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
+  const { deleteChat } = useApp();
+  const ref = useRef<HTMLDialogElement>(null);
+  const [error, setError] = useState('');
+  useEffect(() => ref.current?.showModal(), []);
+  const close = () => ref.current?.close();
+  const confirm = () => deleteChat(chat.id).then(close, (err: Error) => setError(err.message));
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      onClick={(e) => e.target === ref.current && close()}
+      className="m-auto w-[min(24rem,calc(100%-2rem))] rounded-2xl bg-card text-foreground backdrop:bg-black/50"
     >
-      <span className="relative shrink-0">
-        <Blob seed={chat.id} />
-        {chat.status !== 'idle' && (
-          <span
-            className={`absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-sidebar ${BUSY[chat.status].dot}`}
-            aria-label={BUSY[chat.status].label}
-          />
-        )}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-baseline gap-2">
-          <span className={`min-w-0 flex-1 truncate ${chat.unread ? 'font-semibold' : 'font-medium'}`}>
-            {chat.title}
-          </span>
-          <span className="shrink-0 text-xs text-muted-foreground">{when(chat.updatedAt)}</span>
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-            <Preview chat={chat} />
-          </span>
-          {chat.unread && <span className="size-2 shrink-0 rounded-full bg-accent" aria-label="Unread" />}
-        </span>
-      </span>
-    </button>
+      <div className="p-5">
+        <h2 className="font-semibold">Delete chat?</h2>
+        <p className="mt-2 text-sm break-words text-muted-foreground">
+          "{chat.title}" and everything in it will be deleted for good.
+        </p>
+        {error && <p className="mt-2 text-sm text-bad">{error}</p>}
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={close} className="rounded-lg px-3 py-1.5 text-sm hover:bg-muted">
+            Cancel
+          </button>
+          <button onClick={confirm} className="rounded-lg bg-bad px-3 py-1.5 text-sm font-medium text-white">
+            Delete
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
 

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vite-plus/test';
 import { WebSocket } from 'ws';
-import { DEFAULT_BOT, openDb, saveItem, setSetting, type Db } from './db.ts';
+import { DEFAULT_BOT, loadItems, openDb, saveItem, setSetting, type Db } from './db.ts';
 import type { OcEvent } from './opencode.ts';
 import { DECLINED, RULES, skillsIn, type Oc } from './runner.ts';
 import { chats } from './schema.ts';
@@ -40,6 +40,8 @@ function fakeOpencode(name: string) {
   let sessionId = '';
   // What the title model answers next, or an error it fails with.
   let titleReply: string | Error = '"Saying Hi"\n';
+  // What removing a session fails with, if anything.
+  let removeError: Error | null = null;
   const call = (kind: string, input: any) => {
     (calls[kind] ??= []).push(input);
     const part = parts[0]?.trigger === kind ? parts.shift() : undefined;
@@ -66,6 +68,10 @@ function fakeOpencode(name: string) {
         switchModel: async (input: any) => call('switchModel', input),
         interrupt: async (input: any) => call('interrupt', input),
         compact: async (input: any) => call('compact', input),
+        remove: async (input: any) => {
+          call('remove', input);
+          if (removeError) throw removeError;
+        },
         // No session is running when the server (re)connects.
         active: async () => ({}),
         instructions: {
@@ -95,7 +101,13 @@ function fakeOpencode(name: string) {
       },
     } as any,
   };
-  return { oc, calls, sessionId: () => sessionId, titleReply: (reply: string | Error) => (titleReply = reply) };
+  return {
+    oc,
+    calls,
+    sessionId: () => sessionId,
+    titleReply: (reply: string | Error) => (titleReply = reply),
+    removeFails: (err: Error) => (removeError = err),
+  };
 }
 
 const closers: (() => void)[] = [];
@@ -124,6 +136,7 @@ async function browser(base: string) {
     const e = JSON.parse(String(raw)) as ServerEvent;
     if (e.type === 'hello') e.chats.forEach((c) => state.chats.set(c.id, c));
     if (e.type === 'chat') state.chats.set(e.chat.id, e.chat);
+    if (e.type === 'deleted') state.chats.delete(e.id);
     if (e.type === 'items') e.items.forEach((i) => state.items.set(i.id, i));
     if (e.type === 'item') state.items.set(e.item.id, e.item);
     if (e.type === 'delta') {
@@ -318,6 +331,50 @@ test('Stop interrupts the session and the chat says it stopped', async () => {
   expect(fake.calls.interrupt[0]).toEqual({ sessionID: fake.sessionId() });
   await until(() => b.chats.get(chat.id)?.status === 'idle');
   expect(kinds(b.items).at(-1)).toBe('notice');
+});
+
+test('deleting a chat removes it for good: from every browser, the database and OpenCode', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post, db } = await boot(fake.oc);
+  const b = await browser(base);
+  const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
+  await b.open(chat.id);
+  await until(() => b.chats.get(chat.id)?.status === 'idle');
+  expect((await post(`/api/chats/${chat.id}/delete`, {})).status).toBe(200);
+  expect(fake.calls.remove[0]).toEqual({ sessionID: fake.sessionId() });
+  await until(() => !b.chats.has(chat.id));
+  expect(db.select().from(chats).all()).toEqual([]);
+  expect(loadItems(db, chat.id)).toEqual([]);
+  // A browser that connects later does not see it either, and it cannot be deleted twice.
+  expect((await browser(base)).chats.size).toBe(0);
+  expect((await post(`/api/chats/${chat.id}/delete`, {})).status).toBe(404);
+});
+
+test('a chat is still deleted when OpenCode cannot remove its session', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
+  await until(() => b.chats.get(chat.id)?.status === 'idle');
+  fake.removeFails(new Error('Session not found'));
+  expect((await post(`/api/chats/${chat.id}/delete`, {})).status).toBe(200);
+  await until(() => !b.chats.has(chat.id));
+});
+
+test('a message still waiting on OpenCode when its chat is deleted does not take the server down', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
+  await until(() => b.chats.get(chat.id)?.status === 'idle');
+  let fail: ((err: Error) => void) | undefined;
+  (fake.oc.client.session as any).compact = () => new Promise((_, reject) => (fail = reject));
+  await post(`/api/chats/${chat.id}/messages`, { text: '/compact', files: [] });
+  await until(() => fail);
+  await post(`/api/chats/${chat.id}/delete`, {});
+  fail!(new Error('Session not found'));
+  await until(() => !b.chats.has(chat.id));
+  expect((await fetch(base + '/api/health')).status).toBe(200);
 });
 
 test('after a restart, a chat whose session is gone is settled and its waiting card expires', async () => {
