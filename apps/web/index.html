@@ -2,13 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <title>acobot</title>
+    <!-- Lets Chrome on a phone install acobot as an app: own icon, no browser bar. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#0a0a0a" />
     <script>
       // Match ThemeProvider's default (dark unless 'light' is stored) before first paint,
       // so the page never shows white behind the app.
-      document.documentElement.className =
-        localStorage.getItem('acobot-theme') === 'light' ? 't-light' : 't-dark dark';
+      document.documentElement.className = localStorage.getItem('acobot-theme') === 'light' ? 't-light' : 't-dark dark';
     </script>
   </head>
   <body>
