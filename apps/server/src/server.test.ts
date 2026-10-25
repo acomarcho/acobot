@@ -1,12 +1,14 @@
 import type { Bot, Chat, Command, FileRef, Item, Models, ServerEvent } from '@acobot/shared';
+import Database from 'better-sqlite3';
+import { eq } from 'drizzle-orm';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vite-plus/test';
 import { WebSocket } from 'ws';
-import { DEFAULT_BOT, loadItems, openDb, saveItem, setSetting, type Db } from './db.ts';
+import { DEFAULT_BOT, DEFAULT_BOTS, loadItems, openDb, saveItem, setSetting, type Db } from './db.ts';
 import type { OcEvent } from './opencode.ts';
 import { DECLINED, rulesOf, skillsIn, type Oc } from './runner.ts';
-import { chats } from './schema.ts';
+import { bots as botsTable, chats } from './schema.ts';
 import { startServer } from './server.ts';
 import { recording } from './fixtures/recording.ts';
 import MODELS from './fixtures/models.json' with { type: 'json' };
@@ -693,18 +695,62 @@ test('the built app is checked with the server on each open, except build-named 
   expect(await cache('/assets/index-abc123.js')).toBeNull();
 });
 
-test('bots can be added and edited, each needs a name, and acobot is there from the start', async () => {
+test('bots can be added and edited, each needs a name, and the default bots are there from the start', async () => {
   const { base, post, bots } = await boot(fakeOpencode('chat').oc);
   const list = async () => (await (await fetch(base + '/api/bots')).json()) as Bot[];
-  expect(await list()).toEqual([{ ...DEFAULT_BOT, memory: join(bots, 'acobot', 'MEMORY.md') }]);
+  // The general agent first: it is the one new chats get when no bot is picked.
+  expect(await list()).toEqual(DEFAULT_BOTS.map((b) => ({ ...b, memory: join(bots, b.id, 'MEMORY.md') })));
+  expect((await list()).map((b) => b.name)).toEqual(['general agent', 'coding agent']);
   const { body: coder } = await post('/api/bots', { name: ' Coder ', prompt: 'You write code.' });
   expect(coder).toMatchObject({ name: 'Coder', prompt: 'You write code.', memory: join(bots, coder.id, 'MEMORY.md') });
   const res = await post(`/api/bots/${coder.id}`, { name: 'Coder', prompt: 'You write tidy code.' });
   expect(res.body.prompt).toBe('You write tidy code.');
-  expect((await list()).map((b) => b.name)).toEqual(['acobot', 'Coder']);
+  expect((await list()).map((b) => b.name)).toEqual(['general agent', 'coding agent', 'Coder']);
   expect((await post('/api/bots', { name: '  ', prompt: 'x' })).status).toBe(400);
   expect((await post('/api/bots', { name: 'x', prompt: 3 })).status).toBe(400);
   expect((await post('/api/bots/nope', { name: 'x', prompt: 'x' })).status).toBe(404);
+});
+
+test('opening the database again keeps changes to a default bot and does not add it twice', async () => {
+  const dir = mkdtempSync(join(WORK + '-'));
+  closers.push(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'acobot.db');
+  const { post } = await boot(fakeOpencode('chat').oc, openDb(file));
+  await post('/api/bots/coding-agent', { name: 'coding agent', prompt: 'Mine now.' });
+
+  const { base } = await boot(fakeOpencode('chat').oc, openDb(file));
+  const list = (await (await fetch(base + '/api/bots')).json()) as Bot[];
+  expect(list.map((b) => [b.name, b.prompt])).toEqual([
+    ['general agent', DEFAULT_BOT.prompt],
+    ['coding agent', 'Mine now.'],
+  ]);
+});
+
+test('the default bot from before, named acobot, becomes the general agent, keeping what the user changed', async () => {
+  const dir = mkdtempSync(join(WORK + '-'));
+  closers.push(() => rmSync(dir, { recursive: true, force: true }));
+  const file = join(dir, 'acobot.db');
+  // As it was on installs before the rename (the last migration not run yet), with one line added by the user.
+  const old = `You are acobot, a helper that lives on the user's own computer and can use all of it through your tools.
+${DEFAULT_BOT.prompt.split('\n').slice(2).join('\n')}
+Answer in French.`;
+  const rewind = (name: string) => {
+    const sqlite = new Database(file);
+    sqlite.prepare('UPDATE bots SET name = ?, prompt = ? WHERE id = ?').run(name, old, 'acobot');
+    sqlite.exec(
+      'DELETE FROM __drizzle_migrations WHERE created_at = (SELECT max(created_at) FROM __drizzle_migrations)',
+    );
+    sqlite.close();
+  };
+  const general = () => openDb(file).select().from(botsTable).where(eq(botsTable.id, 'acobot')).get()!;
+
+  openDb(file);
+  rewind('acobot');
+  expect(general()).toMatchObject({ name: 'general agent', prompt: `${DEFAULT_BOT.prompt}\nAnswer in French.` });
+
+  // A name the user picked stays.
+  rewind('Buddy');
+  expect(general().name).toBe('Buddy');
 });
 
 test('a chat starts with its bot: the soul, where its memory lives, then that memory, and each bot has its own', async () => {

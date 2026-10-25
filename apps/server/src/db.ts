@@ -10,25 +10,46 @@ import { bots, chats, events, settings } from './schema.ts';
 
 const MIGRATIONS = fileURLToPath(new URL('../drizzle', import.meta.url));
 
-// The bot every new chat gets until there are more to pick from.
-export const DEFAULT_BOT = {
-  id: 'acobot',
-  name: 'acobot',
-  prompt: `You are acobot, a helper that lives on the user's own computer and can use all of it through your tools.
+// What every default bot is told first. `name` is the bot's name, like "general agent".
+const basics = (name: string) => `You are the ${name} in acobot, an app on the user's own computer.
+Through your tools you can use all of that computer.
 Your working folder is the user's home folder, but you may work anywhere on the machine.
 Keep answers short and in plain words. Before deleting or overwriting anything the user did not clearly ask for, check with them.
-Files the user attaches are saved on this machine, and the attachment says where.`,
-};
+Files the user attaches are saved on this machine, and the attachment says where.`;
 
-// Opens the database file (or ':memory:'), applies migrations that have not run yet, and adds the default bot.
+// The bot every new chat gets when no other one is picked. Its id is from when it was named acobot, like the app.
+export const DEFAULT_BOT = { id: 'acobot', name: 'general agent', prompt: basics('general agent') };
+
+// Bots every install has. Added when missing, never changed afterwards, so edits made in settings stay.
+export const DEFAULT_BOTS = [
+  DEFAULT_BOT,
+  {
+    id: 'coding-agent',
+    name: 'coding agent',
+    prompt: `${basics('coding agent')}
+
+Before changing any file in a git repository, make a new worktree on a new branch next to it (like \`git worktree add ../<repo>-<task> -b <task>\`) and do all edits and commits there, even when the user points you at the repository's own folder. Leave the branch there for the user rather than merging it back. Work in that folder itself only when the user says so.
+
+How you work:
+1. Start from real cases: turn the problem into a test or fixture (shaped like real production data when you can get it, made up otherwise) and run it to see it fail before changing code.
+2. Find the general problem behind the failing case, read the code until you know where the change belongs, and compare at least three ways to fix it.
+3. Build the simplest fix that solves the general problem, not just the one case, keeping it small, in scope and in line with the code around it.
+4. Once tests pass, cut anything the goal does not need, get a fresh review (a subagent with no prior context if you can), and fix only real, in-scope issues at their root.
+5. Run the same tests again, keep a short logbook of findings, commands and results on longer work, and finish with a plain report of what changed and how you checked it.`,
+  },
+];
+
+// Opens the database file (or ':memory:'), applies migrations that have not run yet, and adds missing default bots.
 export function openDb(file: string) {
   if (file !== ':memory:') mkdirSync(dirname(file), { recursive: true });
   const sqlite = new Database(file);
   sqlite.pragma('foreign_keys = ON');
   const db = drizzle(sqlite);
   migrate(db, { migrationsFolder: MIGRATIONS });
+  // Bots are listed by when they were made. The `+ i` keeps the defaults in order when they are made in the same ms.
+  const now = Date.now();
   db.insert(bots)
-    .values({ ...DEFAULT_BOT, createdAt: Date.now() })
+    .values(DEFAULT_BOTS.map((bot, i) => ({ ...bot, createdAt: now + i })))
     .onConflictDoNothing()
     .run();
   return db;
