@@ -24,6 +24,9 @@ function Home() {
   const { c: open, t: tab } = Route.useSearch();
   const nav = Route.useNavigate();
   const go = (id?: string) => void nav({ search: { c: id, t: tab } });
+  // A chat made on the new-chat screen takes its place in history, so Back goes to the thread list and not to
+  // the empty screen the chat started from.
+  const started = (id: string) => void nav({ search: { c: id, t: tab }, replace: true });
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
   const [details, setDetails] = useState(false);
@@ -171,7 +174,7 @@ function Home() {
             </div>
           )}
           <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6">
-            <Composer key={open} chat={chat} onCreated={go} />
+            <Composer key={open} chat={chat} onCreated={started} />
           </div>
         </main>
       ) : (
