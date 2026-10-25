@@ -241,7 +241,12 @@ export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
     upgradeWebSocket(() => ({
       onOpen(_, ws) {
         hub.add(ws);
-        hub.send(ws, { type: 'hello', chats: listChats(db), automations: automations.list() });
+        hub.send(ws, {
+          type: 'hello',
+          chats: listChats(db),
+          automations: automations.list(),
+          utcOffset: -new Date().getTimezoneOffset(),
+        });
       },
       // The browser says which chat it looks at. It is signed up for that chat's events and gets everything so far
       // in the same step, so nothing can slip in between.

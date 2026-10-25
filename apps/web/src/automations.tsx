@@ -12,18 +12,43 @@ const WEEKDAYS = [0, 1, 2, 3, 4];
 const same = (a: number[], b: number[]) => a.length === b.length && a.every((day) => b.includes(day));
 
 // Days of the week in words: "Weekdays", "Mon, Thu".
-export function daysOf(days: number[]) {
+function daysOf(days: number[]) {
   if (days.length === 7) return 'Every day';
   if (same(days, WEEKDAYS)) return 'Weekdays';
   if (same(days, [5, 6])) return 'Weekends';
-  return days.map((day) => DAYS[day]).join(', ');
+  return days.map((day) => DAYS[day]).join(', ') || 'No day picked';
 }
 
-// A schedule in words: "Weekdays at 9:00 AM". The time is the server's clock, which is this machine's.
-export const describe = ({ time, days }: Schedule) => {
+// A time of day in words: "9:00 AM". It is counted in minutes since midnight. Minutes before midnight or after the
+// day is over give the time on the day before or after.
+const clockOf = (minutes: number) => clock(new Date(2000, 0, 1, 0, minutes).getTime());
+const minutesOf = (time: string) => {
   const [hours, minutes] = time.split(':').map(Number);
-  return `${daysOf(days)} at ${clock(new Date(2000, 0, 1, hours, minutes).getTime())}`;
+  return hours * 60 + minutes;
 };
+
+// The name of a clock that is `utcOffset` minutes ahead of UTC: "UTC", "UTC+7", "UTC-3:30".
+export function zoneName(utcOffset: number) {
+  if (!utcOffset) return 'UTC';
+  const hours = Math.floor(Math.abs(utcOffset) / 60);
+  const minutes = Math.abs(utcOffset) % 60;
+  return `UTC${utcOffset < 0 ? '-' : '+'}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
+}
+
+// A schedule in words, on the server's clock: "Weekdays at 9:00 AM UTC".
+export const describe = ({ time, days }: Schedule, utcOffset: number) =>
+  `${daysOf(days)} at ${clockOf(minutesOf(time))} ${zoneName(utcOffset)}`;
+
+// What goes behind that for a reader whose own clock is another one: " (4:00 PM your time)". Past midnight the days
+// move along with the time, and are said too: " (Tue at 3:00 AM your time)". It uses how far apart the two clocks are
+// today, so around a change to or from summer time it can be an hour off for a few days. "Next:" is always right.
+export function inYourTime({ time, days }: Schedule, utcOffset: number, own = -new Date().getTimezoneOffset()) {
+  if (own === utcOffset) return '';
+  const theirs = minutesOf(time) + own - utcOffset;
+  const daysOn = Math.floor(theirs / (24 * 60));
+  const moved = days.map((day) => (day + daysOn + 7) % 7).sort();
+  return ` (${same(moved, days) ? '' : `${daysOf(moved)} at `}${clockOf(theirs)} your time)`;
+}
 
 // When it runs next, on this device's clock: "Next: Tomorrow, 9:00 AM". "Paused" when it does not.
 export function nextLabel(nextAt: number | null, now = Date.now()) {
@@ -45,7 +70,7 @@ const label = 'mb-1.5 block text-xs text-muted-foreground';
 
 // Makes a new automation, or changes `automation`. Esc, Cancel or a tap outside closes it.
 function AutomationDialog({ automation, onClose }: { automation?: Automation; onClose: () => void }) {
-  const { saveAutomation, deleteAutomation } = useApp();
+  const { saveAutomation, deleteAutomation, utcOffset } = useApp();
   const { bots } = useBots();
   const { models } = useModels();
   const ref = useRef<HTMLDialogElement>(null);
@@ -181,7 +206,11 @@ function AutomationDialog({ automation, onClose }: { automation?: Automation; on
             ))}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">Each run is a new chat. Times are this computer's clock.</p>
+        <p className="text-xs text-muted-foreground">
+          {/* The time box can be emptied while typing. */}
+          {value.time && `${describe(value, utcOffset)}${inYourTime(value, utcOffset)}. `}
+          Each run is a new chat. A run is skipped if the server is off at that time.
+        </p>
         <div className="flex items-center gap-2">
           {automation && (
             <button type="button" onClick={remove} className="rounded-lg px-3 py-1.5 text-sm text-bad hover:bg-muted">
@@ -215,7 +244,7 @@ function Card({
   onOpen: (chatId: string) => void;
   onEdit: () => void;
 }) {
-  const { chats, saveAutomation, runAutomation } = useApp();
+  const { chats, saveAutomation, runAutomation, utcOffset } = useApp();
   const { bots } = useBots();
   // The run started last, even when an older one was replied to since.
   const runs = chats.filter((c) => c.automationId === automation.id).sort((a, b) => b.createdAt - a.createdAt);
@@ -230,7 +259,8 @@ function Card({
         <span className={`min-w-0 flex-1 ${automation.on ? '' : 'opacity-60'}`}>
           <span className="block truncate font-medium">{automation.name}</span>
           <span className="block text-xs text-muted-foreground">
-            {describe(automation)}
+            {describe(automation, utcOffset)}
+            {inYourTime(automation, utcOffset)}
             {bot && ` · ${bot}`}
           </span>
         </span>

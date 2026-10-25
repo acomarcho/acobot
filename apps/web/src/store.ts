@@ -25,6 +25,8 @@ type State = {
   chats: Chat[];
   // Newest first.
   automations: Automation[];
+  // How many minutes the server's clock is ahead of UTC. Automations run on that clock.
+  utcOffset: number;
   // The chat on screen. `items` is null until the server has sent what is in it.
   openId: string | null;
   items: Item[] | null;
@@ -32,7 +34,15 @@ type State = {
 
 type Action = ServerEvent | { type: 'open'; chatId: string | null } | { type: 'offline' };
 
-const START: State = { ready: false, online: false, chats: [], automations: [], openId: null, items: null };
+const START: State = {
+  ready: false,
+  online: false,
+  chats: [],
+  automations: [],
+  utcOffset: 0,
+  openId: null,
+  items: null,
+};
 
 const upsert = <T extends { id: string }>(list: T[], next: T) =>
   list.some((x) => x.id === next.id) ? list.map((x) => (x.id === next.id ? next : x)) : [next, ...list];
@@ -42,7 +52,14 @@ function reduce(state: State, action: Action): State {
   if ('chatId' in action && action.type !== 'open' && action.chatId !== state.openId) return state;
   switch (action.type) {
     case 'hello':
-      return { ...state, ready: true, online: true, chats: action.chats, automations: action.automations };
+      return {
+        ...state,
+        ready: true,
+        online: true,
+        chats: action.chats,
+        automations: action.automations,
+        utcOffset: action.utcOffset,
+      };
     case 'offline':
       return { ...state, online: false };
     case 'chat': {

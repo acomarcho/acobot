@@ -154,11 +154,13 @@ async function browser(base: string) {
     chats: new Map<string, Chat>(),
     items: new Map<string, Item>(),
     automations: new Map<string, Automation>(),
+    utcOffset: null as number | null,
   };
   ws.on('message', (raw) => {
     const e = JSON.parse(String(raw)) as ServerEvent;
     if (e.type === 'hello') e.chats.forEach((c) => state.chats.set(c.id, c));
     if (e.type === 'hello') e.automations.forEach((a) => state.automations.set(a.id, a));
+    if (e.type === 'hello') state.utcOffset = e.utcOffset;
     if (e.type === 'automation') state.automations.set(e.automation.id, e.automation);
     if (e.type === 'automation-gone') state.automations.delete(e.id);
     if (e.type === 'chat') state.chats.set(e.chat.id, e.chat);
@@ -854,6 +856,8 @@ test('an automation needs a message, a time, a day, a bot, a model you can pick 
   expect(made.nextAt).toBe(nextRun(AUTOMATION, made.nextAt - 1));
   await until(() => b.automations.get(made.id));
   expect((await browser(base)).automations.get(made.id)).toEqual(made);
+  // Times are on the server's clock, so browsers are told which clock that is.
+  expect(b.utcOffset).toBe(0 - new Date().getTimezoneOffset());
 
   // Paused, it has no next run. Changes reach the browsers too.
   const { body: paused } = await post(`${AUTOMATIONS_PATH}/${made.id}`, { ...AUTOMATION, name: 'Hi', on: false });

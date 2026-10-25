@@ -97,7 +97,7 @@ export type Models = { models: Model[]; default: string; defaultAccess: Access }
 export type Settings = { defaultModel: string; defaultAccess: Access };
 
 // When an automation runs: at `time` ('HH:MM', 24 hours) on `days` of the week (0 is Monday, 6 is Sunday), on the
-// server machine's own clock.
+// server machine's own clock. The first WebSocket message says which clock that is (`utcOffset`).
 export type Schedule = { time: string; days: number[] };
 
 // A message sent to a bot in a fresh chat at set times, with the same settings a new chat has. `on` is false while
@@ -114,8 +114,9 @@ export type NewAutomation = Schedule & {
 export type Automation = NewAutomation & { id: string; nextAt: number | null };
 
 // What the server pushes over the WebSocket. `item` carries the whole item, so getting it twice is harmless.
+// `utcOffset` is how many minutes the server machine's clock is ahead of UTC right now (420 for UTC+7).
 export type ServerEvent =
-  | { type: 'hello'; chats: Chat[]; automations: Automation[] }
+  | { type: 'hello'; chats: Chat[]; automations: Automation[]; utcOffset: number }
   // An automation was made or changed, or has just run (so it runs next at another time).
   | { type: 'automation'; automation: Automation }
   | { type: 'automation-gone'; id: string }
