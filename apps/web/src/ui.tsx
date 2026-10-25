@@ -1,6 +1,7 @@
 import {
   ACCESS,
   type Access,
+  type Bot,
   type Chat,
   type Field,
   type FileRef,
@@ -11,6 +12,7 @@ import {
 import { code } from '@streamdown/code';
 import {
   ArrowUp,
+  Bot as BotIcon,
   Check,
   ChevronDown,
   ChevronRight,
@@ -37,7 +39,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { Streamdown } from 'streamdown';
 import { CommandMenu, suggest, useCommands } from './commands';
 import { byDay, clock, dayLabel, dayOf, elapsed } from './days';
-import { useApp, useModels } from './store';
+import { useApp, useBots, useModels } from './store';
 import { fileUrl, isImage, uploadFile } from './upload';
 
 const plugins = { code };
@@ -638,6 +640,34 @@ function AccessPill({ access, onChange }: { access: Access; onChange: (a: Access
   );
 }
 
+// The bot a chat talks to. Before the chat starts it can be picked (with the phone's or browser's own list); after
+// that it only says which bot it is, since a chat keeps its bot.
+function BotPill({ bots, value, onChange }: { bots: Bot[]; value: string; onChange?: (id: string) => void }) {
+  return (
+    <label className="relative flex min-w-0 shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground has-[select]:hover:bg-muted">
+      <BotIcon className="size-3.5 shrink-0" />
+      <span className="max-w-28 truncate">{bots.find((b) => b.id === value)?.name}</span>
+      {onChange && (
+        <>
+          <ChevronDown className="size-3.5 shrink-0" />
+          <select
+            aria-label="Bot"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          >
+            {bots.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+    </label>
+  );
+}
+
 const nameOf = (models: Model[], id: string) => models.find((m) => m.id === id)?.name ?? (id.split('/')[1] || 'Model');
 
 // A button showing the model; it opens a searchable list. On phones the list slides up from the bottom; on bigger
@@ -771,6 +801,10 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   // The model a new chat will start with, once picked. Until then, the server's default.
   const [picked, setPicked] = useState<string>();
   const model = chat?.model ?? picked ?? models?.default ?? '';
+  // The bot a new chat will talk to, once picked. Until then the first one, which is acobot.
+  const { bots } = useBots();
+  const [pickedBot, setPickedBot] = useState<string>();
+  const botId = chat?.botId ?? pickedBot ?? bots[0]?.id ?? '';
   const [sending, setSending] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -824,7 +858,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
     setSending(true);
     try {
       if (chat) await sendMessage(chat.id, body);
-      else onCreated?.((await createChat({ ...body, access, model: picked })).id);
+      else onCreated?.((await createChat({ ...body, access, model: picked, botId: pickedBot })).id);
       setText('');
       setUploads([]);
     } catch (err) {
@@ -869,7 +903,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
         ref={ref}
         rows={1}
         value={text}
-        placeholder={chat ? 'Reply' : 'Message acobot'}
+        placeholder={chat ? 'Reply' : `Message ${bots.find((b) => b.id === botId)?.name ?? 'acobot'}`}
         onChange={edited}
         onSelect={(e) => e.currentTarget.selectionStart !== caret && setClosed(true)}
         onBlur={() => setClosed(true)}
@@ -908,6 +942,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
         >
           <Paperclip className="size-4.5" />
         </button>
+        {bots.length > 0 && <BotPill bots={bots} value={botId} onChange={chat ? undefined : setPickedBot} />}
         <AccessPill
           access={access}
           onChange={(a) => (chat ? void setAccess(chat.id, a).catch((err) => alert(err.message)) : setNewAccess(a))}

@@ -1,5 +1,6 @@
 import type {
   Access,
+  Bot,
   Chat,
   Command,
   Decision,
@@ -13,11 +14,13 @@ import type {
 } from '@acobot/shared';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { chatCols, DEFAULT_BOT, getSetting, loadItems, saveItem, type Db } from './db.ts';
+import { relative } from 'node:path';
+import type { Bots } from './bots.ts';
+import { chatCols, getSetting, loadItems, saveItem, type Db } from './db.ts';
 import type { Files } from './files.ts';
 import type { Hub } from './hub.ts';
 import { sessionOf, type Opencode } from './opencode.ts';
-import { bots, chats, events } from './schema.ts';
+import { chats, events } from './schema.ts';
 import { createTranslator, nextAt, type Out } from './translate.ts';
 
 // The part of a running OpenCode server the runner needs. Tests pass a stand-in.
@@ -34,10 +37,17 @@ export const RULES: Record<Access, { action: string; resource: string; effect: '
   full: [{ action: '*', resource: '*', effect: 'allow' }],
 };
 
+// The rules for a chat: its access, and the bot may always change its own memory file. OpenCode names files by their
+// path from the session's folder, so that is how `memory` must be given.
+export const rulesOf = (access: Access, memory: string) => [
+  ...RULES[access],
+  { action: 'edit', resource: memory, effect: 'allow' as const },
+];
+
 // Sent with a declined approval. A decline without words would end OpenCode's whole turn.
 export const DECLINED = 'The user declined this. Do not try it another way; say what you would have done instead.';
 
-// The key the bot's prompt is stored under in each session's instructions. OpenCode allows [a-z0-9._-] only.
+// The key the bot's prompt and memory are stored under in each session's instructions. OpenCode allows [a-z0-9._-] only.
 const BOT_KEY = 'acobot.bot';
 
 // A stream that drops is opened again after this long.
@@ -83,7 +93,7 @@ export function skillsIn(text: string, ids: Set<string>) {
 }
 
 // `home` is the folder sessions start in.
-export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: string }) {
+export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: { home: string }) {
   let oc: Oc | null = null;
   const translators = new Map<string, ReturnType<typeof createTranslator>>();
 
@@ -178,6 +188,8 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
       if (oc === server) await new Promise((r) => setTimeout(r, RETRY_MS));
     }
   }
+
+  const rules = (access: Access, bot: Bot) => rulesOf(access, relative(opts.home, bot.memory));
 
   const client = () => {
     if (!oc) throw new Error('OpenCode is not running right now.');
@@ -300,16 +312,17 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
       return { models, default: first.find(listed) ?? '', defaultAccess };
     },
 
-    // `body.model` must be one from models().
+    // `body.model` must be one from models(), and `body.botId` a bot.
     async create(body: Required<NewChat>): Promise<Chat> {
-      // One bot for now. More bots means more rows, and a way to pick one.
-      const bot = db.select().from(bots).where(eq(bots.id, DEFAULT_BOT.id)).get()!;
+      const bot = bots.get(body.botId)!;
+      // Read first: if the memory cannot be read, no session is left behind.
+      const brief = bots.brief(bot);
       const session = await client().session.create({
         location: { directory: opts.home },
         model: refOf(body.model),
-        permissions: RULES[body.access],
+        permissions: rules(body.access, bot),
       });
-      await client().session.instructions.entry.put({ sessionID: session.id, key: BOT_KEY, value: bot.prompt });
+      await client().session.instructions.entry.put({ sessionID: session.id, key: BOT_KEY, value: brief });
       const now = Date.now();
       const chat = db
         .insert(chats)
@@ -342,7 +355,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, opts: { home: strin
     async setAccess(chatId: string, access: Access) {
       const chat = row(chatId);
       if (!chat) return null;
-      await client().session.update({ sessionID: chat.sessionId, permissions: RULES[access] });
+      await client().session.update({ sessionID: chat.sessionId, permissions: rules(access, bots.get(chat.botId)!) });
       return setChat(chatId, { access }, false);
     },
 

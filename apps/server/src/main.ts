@@ -11,6 +11,7 @@ const home = realpathSync(homedir());
 // ACOBOT_PORT and ACOBOT_DB let a second copy (for example one being developed) run next to the one in use.
 const dbFile = process.env.ACOBOT_DB ?? join(home, '.acobot', 'acobot.db');
 const uploads = join(dirname(dbFile), 'uploads');
+const bots = join(dirname(dbFile), 'bots');
 const bin = process.env.OPENCODE_BIN ?? join(home, '.opencode', 'bin', 'opencode');
 // After `pnpm build` the web app is here, and this one process serves everything.
 const built = fileURLToPath(new URL('../../web/dist', import.meta.url));
@@ -20,6 +21,7 @@ const { port, runner } = await startServer(Number(process.env.ACOBOT_PORT) || SE
   db: openDb(dbFile),
   home,
   uploads,
+  bots,
   web,
 });
 console.log(`acobot listening on http://127.0.0.1:${port}${web ? ' (with the built web app)' : ''}`);
