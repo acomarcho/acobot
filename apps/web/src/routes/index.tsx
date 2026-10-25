@@ -23,7 +23,7 @@ function Home() {
   const [details, setDetails] = useState(false);
   const [deleting, setDeleting] = useState<Chat | null>(null);
   const chat = chats.find((x) => x.id === open);
-  const { ref: scrollRef, onScroll } = useStickToBottom(items, open);
+  const { ref: scrollRef, onScroll, onWheel } = useStickToBottom(items, open);
   const chatId = chat?.id ?? null;
 
   useEffect(() => {
@@ -118,7 +118,12 @@ function Home() {
             )}
           </header>
           {chat ? (
-            <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto scroll-thin">
+            <div
+              ref={scrollRef}
+              onScroll={onScroll}
+              onWheel={onWheel}
+              className="min-h-0 flex-1 overflow-y-auto scroll-thin"
+            >
               <div className="mx-auto max-w-3xl px-3 py-4 md:px-6">
                 {items && <Messages chat={chat} items={items} />}
               </div>

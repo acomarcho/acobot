@@ -35,11 +35,12 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type WheelEvent } from 'react';
 import { Streamdown } from 'streamdown';
 import { CommandMenu, suggest, useCommands } from './commands';
 import { byDay, clock, dayLabel, dayOf, elapsed } from './days';
 import { useApp, useBots, useModels } from './store';
+import { follows } from './scroll';
 import { fileUrl, isImage, uploadFile } from './upload';
 
 const plugins = { code };
@@ -517,10 +518,12 @@ const Stamp = ({ at }: { at: number }) => (
 );
 
 // One day of a chat. Its date pill stays at the top while the day scrolls by, and the next day's section
-// pushes it away, since a sticky thing never leaves its section.
+// pushes it away, since a sticky thing never leaves its section. Rows under the pill that are off screen are not
+// laid out or painted (content-visibility), so a long chat stays quick while a reply streams in. Each keeps the
+// height it last had, so the scroll bar does not jump.
 function Day({ at, children }: { at: number; children: ReactNode }) {
   return (
-    <section className="relative space-y-2 before:absolute before:inset-x-0 before:top-3.5 before:border-t before:border-border">
+    <section className="relative space-y-2 before:absolute before:inset-x-0 before:top-3.5 before:border-t before:border-border [&>*+*]:[contain-intrinsic-size:auto_120px] [&>*+*]:[content-visibility:auto]">
       <div className="pointer-events-none sticky top-0 z-10 flex h-7 items-center justify-center">
         <span className="rounded-full border border-border bg-background px-3 py-0.5 text-xs font-medium shadow-sm">
           {dayLabel(at)}
@@ -980,22 +983,37 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   );
 }
 
-// Keeps the newest message in view while a reply streams in, and jumps to the bottom when a chat opens.
+// Keeps the newest message in view while a reply streams in, and jumps to the bottom when a chat opens. Reading
+// further up is never interrupted (see `follows`). `lastTop` also records where our own jumps land, so a jump's
+// scroll event (which can arrive after the reader already turned the wheel up) does not count as moving down.
 export function useStickToBottom(dep: unknown, key?: string | null) {
   const ref = useRef<HTMLDivElement>(null);
   const near = useRef(true);
+  const lastTop = useRef(0);
   useEffect(() => {
     const el = ref.current;
-    if (el && near.current) el.scrollTop = el.scrollHeight;
+    if (!el || !near.current) return;
+    el.scrollTop = el.scrollHeight;
+    lastTop.current = el.scrollTop;
   }, [dep]);
   useEffect(() => {
     near.current = true;
   }, [key]);
   const onScroll = () => {
     const el = ref.current!;
-    near.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    near.current = follows(
+      near.current,
+      el.scrollTop,
+      lastTop.current,
+      el.scrollHeight - el.scrollTop - el.clientHeight,
+    );
+    lastTop.current = el.scrollTop;
   };
-  return { ref, onScroll };
+  // A wheel says "up" before the page moves, so a new chunk arriving mid-scroll cannot cancel it.
+  const onWheel = (e: WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY < 0 && e.currentTarget.scrollTop > 0) near.current = false;
+  };
+  return { ref, onScroll, onWheel };
 }
 
 // ---------- Details ----------
