@@ -1,5 +1,5 @@
 import type { Chat, Command, FileRef, Item, Models, ServerEvent } from '@acobot/shared';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vite-plus/test';
 import { WebSocket } from 'ws';
@@ -613,4 +613,24 @@ test('/compact on its own sums up the chat instead of sending a message', async 
   expect(fake.calls.compact).toEqual([{ sessionID: fake.sessionId() }]);
   expect(fake.calls.prompt).toHaveLength(1);
   expect(kinds(b.items)).toEqual(['message', 'message', 'message', 'notice']);
+});
+
+test('the built app is checked with the server on each open, except build-named files in assets/', async () => {
+  const web = mkdtempSync(join(WORK + '-web-'));
+  closers.push(() => rmSync(web, { recursive: true, force: true }));
+  mkdirSync(join(web, 'assets'));
+  writeFileSync(join(web, 'index.html'), '<!doctype html>');
+  writeFileSync(join(web, 'manifest.webmanifest'), '{}');
+  writeFileSync(join(web, 'assets', 'index-abc123.js'), '');
+  const server = await startServer(0, { db: openDb(':memory:'), home: '/home/test', uploads: web, web });
+  closers.push(server.close);
+  const cache = async (path: string) => {
+    const res = await fetch(`http://127.0.0.1:${server.port}${path}`);
+    expect(res.status).toBe(200);
+    return res.headers.get('cache-control');
+  };
+  expect(await cache('/')).toBe('no-cache');
+  expect(await cache('/chat/some-id')).toBe('no-cache');
+  expect(await cache('/manifest.webmanifest')).toBe('no-cache');
+  expect(await cache('/assets/index-abc123.js')).toBeNull();
 });

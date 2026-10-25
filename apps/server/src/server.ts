@@ -12,7 +12,7 @@ import {
 } from '@acobot/shared';
 import { serve, upgradeWebSocket } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { readFileSync } from 'node:fs';
 import { WebSocketServer } from 'ws';
@@ -179,10 +179,15 @@ export function createApp({ db, home, uploads, web }: Deps) {
   );
 
   // The built web app. A path that is not a file gets the app itself, which then shows the right screen.
+  // Files outside assets/ keep their names across builds (index.html, the manifest, icons), so no-cache makes the
+  // browser ask each time and an update shows on the next open. Names in assets/ change with every build.
   if (web) {
+    const onFound = (path: string, c: Context) => {
+      if (!path.includes('/assets/')) c.header('Cache-Control', 'no-cache');
+    };
     app.all('/api/*', (c) => c.json({ error: 'Not found.' }, 404));
-    app.use(serveStatic({ root: web }));
-    app.get('*', serveStatic({ root: web, path: 'index.html' }));
+    app.use(serveStatic({ root: web, onFound }));
+    app.get('*', serveStatic({ root: web, path: 'index.html', onFound }));
   }
 
   return { app, runner };
