@@ -60,8 +60,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     set(d);
   };
   // On <html>, so anything the browser shows outside the app (e.g. next to the phone keyboard) gets the theme color too.
+  // theme-color paints the phone's status bar to match.
   useEffect(() => {
-    document.documentElement.className = dark ? 't-dark dark' : 't-light';
+    const html = document.documentElement;
+    html.className = dark ? 't-dark dark' : 't-light';
+    const background = getComputedStyle(html).getPropertyValue('--background');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background);
   }, [dark]);
   return (
     <ThemeCtx.Provider value={{ dark, setDark }}>
