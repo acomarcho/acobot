@@ -68,7 +68,9 @@ export const chatCols = {
   status: chats.status,
   statusAt: chats.statusAt,
   unread: chats.unread,
+  createdAt: chats.createdAt,
   updatedAt: chats.updatedAt,
+  automationId: chats.automationId,
 };
 
 export const listChats = (db: Db) => db.select(chatCols).from(chats).orderBy(desc(chats.updatedAt)).all();

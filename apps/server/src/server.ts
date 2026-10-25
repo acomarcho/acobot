@@ -1,5 +1,6 @@
 import {
   ACCESS,
+  AUTOMATIONS_PATH,
   DECISIONS,
   FILE_MAX_BYTES,
   FILES_PATH,
@@ -8,6 +9,7 @@ import {
   type Access,
   type ClientEvent,
   type Decision,
+  type NewAutomation,
   type NewBot,
   type NewMessage,
 } from '@acobot/shared';
@@ -17,7 +19,8 @@ import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { readFileSync } from 'node:fs';
 import { WebSocketServer } from 'ws';
-import { openBots } from './bots.ts';
+import { CHECK_MS, openAutomations, readSchedule } from './automations.ts';
+import { openBots, type Bots } from './bots.ts';
 import { DEFAULT_BOT, listChats, loadItems, setSetting, type Db } from './db.ts';
 import { openFiles } from './files.ts';
 import { createHub } from './hub.ts';
@@ -44,11 +47,34 @@ function readBot(body: Record<string, unknown>): NewBot | null {
   return { name, prompt: body.prompt.trim() };
 }
 
+// What an automation is made of, or null if any part cannot be used. Without a name it goes by the first line of its
+// message. `pickable` says whether a model can be picked; the model an automation already had (`kept`) is taken as it
+// is, so one whose model went away can still be paused or changed.
+async function readAutomation(
+  body: Record<string, unknown>,
+  bots: Bots,
+  pickable: (id: unknown) => Promise<unknown>,
+  kept?: string,
+): Promise<NewAutomation | null> {
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  const named = typeof body.name === 'string' ? body.name.trim() : '';
+  const schedule = readSchedule(body);
+  const bot = bots.get(body.botId);
+  const model = typeof body.model === 'string' ? body.model : '';
+  if (!text || !schedule || !bot || !isAccess(body.access) || typeof body.on !== 'boolean') return null;
+  if (model !== kept && !(await pickable(model))) return null;
+  const name = (named || text.split('\n')[0]).slice(0, 60);
+  return { ...schedule, name, text, botId: bot.id, model, access: body.access, on: body.on };
+}
+const NOT_AN_AUTOMATION =
+  'Needs a message, a time, at least one day, a bot, a model you can pick, an access and on or off.';
+
 export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
   const hub = createHub();
   const files = openFiles(uploads);
   const bots = openBots(db, botsDir);
   const runner = createRunner(db, hub, files, bots, { home });
+  const automations = openAutomations(db, hub, runner);
   const known = (id: unknown) => files.find(id) !== null;
   // A model that can be picked right now, or undefined.
   const pickable = async (id: unknown) => (await runner.models()).models.find((m) => m.id === id);
@@ -163,6 +189,28 @@ export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
     return c.json({ ok: true });
   });
 
+  app.post(AUTOMATIONS_PATH, async (c) => {
+    const automation = await readAutomation(await c.req.json().catch(() => ({})), bots, pickable);
+    return automation ? c.json(automations.add(automation)) : c.json({ error: NOT_AN_AUTOMATION }, 400);
+  });
+
+  app.post(`${AUTOMATIONS_PATH}/:id`, async (c) => {
+    const old = automations.find(c.req.param('id'));
+    if (!old) return c.json({ error: 'Automation not found.' }, 404);
+    const automation = await readAutomation(await c.req.json().catch(() => ({})), bots, pickable, old.model);
+    return automation ? c.json(automations.edit(old.id, automation)) : c.json({ error: NOT_AN_AUTOMATION }, 400);
+  });
+
+  app.post(`${AUTOMATIONS_PATH}/:id/delete`, (c) =>
+    automations.remove(c.req.param('id')) ? c.json({ ok: true }) : c.json({ error: 'Automation not found.' }, 404),
+  );
+
+  // Runs it right now, whatever its schedule says, also while it is paused.
+  app.post(`${AUTOMATIONS_PATH}/:id/run`, async (c) => {
+    const automation = automations.find(c.req.param('id'));
+    return automation ? c.json(await automations.run(automation)) : c.json({ error: 'Automation not found.' }, 404);
+  });
+
   // The browser sends one file as the whole request body, with its name in `x-file-name`.
   const tooBig = bodyLimit({
     maxSize: FILE_MAX_BYTES,
@@ -193,7 +241,12 @@ export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
     upgradeWebSocket(() => ({
       onOpen(_, ws) {
         hub.add(ws);
-        hub.send(ws, { type: 'hello', chats: listChats(db) });
+        hub.send(ws, {
+          type: 'hello',
+          chats: listChats(db),
+          automations: automations.list(),
+          utcOffset: -new Date().getTimezoneOffset(),
+        });
       },
       // The browser says which chat it looks at. It is signed up for that chat's events and gets everything so far
       // in the same step, so nothing can slip in between.
@@ -221,16 +274,19 @@ export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
     app.get('*', serveStatic({ root: web, path: 'index.html', onFound }));
   }
 
-  return { app, runner };
+  return { app, runner, automations };
 }
 
 // Listens on localhost only. Tailscale sits in front of it.
 export function startServer(port: number, deps: Deps) {
-  const { app, runner } = createApp(deps);
+  const { app, runner, automations } = createApp(deps);
+  const check = setInterval(() => void automations.tick(Date.now()), CHECK_MS);
   const websocket = { server: new WebSocketServer({ noServer: true }) };
-  return new Promise<{ port: number; runner: typeof runner; close: () => void }>((resolve) => {
-    const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1', websocket }, (info) =>
-      resolve({ port: info.port, runner, close: () => server.close() }),
-    );
-  });
+  return new Promise<{ port: number; runner: typeof runner; automations: typeof automations; close: () => void }>(
+    (resolve) => {
+      const server = serve({ fetch: app.fetch, port, hostname: '127.0.0.1', websocket }, (info) =>
+        resolve({ port: info.port, runner, automations, close: () => (clearInterval(check), server.close()) }),
+      );
+    },
+  );
 }

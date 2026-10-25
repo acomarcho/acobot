@@ -3,21 +3,27 @@ import { ArrowLeft, PanelRight, Plus, Search, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApp } from '../store';
 import type { Chat } from '@acobot/shared';
+import { Automations } from '../automations';
 import { Blob, Composer, DeleteDialog, Details, Messages, Row, SearchBox, ThemeButton, useStickToBottom } from '../ui';
 
 // `?c=` is the chat on screen, or `new` for the new chat screen. Without it, phones show the chat list.
+// `?t=automations` shows the Automations tab in the sidebar instead of the chats.
+type Search = { c?: string; t?: 'automations' };
 export const Route = createFileRoute('/')({
-  validateSearch: (s: Record<string, unknown>): { c?: string } => ({ c: typeof s.c === 'string' ? s.c : undefined }),
+  validateSearch: (s: Record<string, unknown>): Search => ({
+    c: typeof s.c === 'string' ? s.c : undefined,
+    t: s.t === 'automations' ? s.t : undefined,
+  }),
   component: Home,
 });
 
 // Grok Bot layout: chat list on the left, conversation in the middle, details on the right.
 // On phones the list is its own screen and a chat opens full screen.
 function Home() {
-  const { chats, items, openChat } = useApp();
-  const { c: open } = Route.useSearch();
+  const { chats, automations, items, openChat } = useApp();
+  const { c: open, t: tab } = Route.useSearch();
   const nav = Route.useNavigate();
-  const go = (id?: string) => void nav({ search: { c: id } });
+  const go = (id?: string) => void nav({ search: { c: id, t: tab } });
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
   const [details, setDetails] = useState(false);
@@ -55,7 +61,8 @@ function Home() {
           <button
             onClick={() => setSearching(!searching)}
             aria-label="Search"
-            className="grid size-10 place-items-center rounded-full hover:bg-sidebar-accent md:hidden"
+            // Search looks through chats only.
+            className={`grid size-10 place-items-center rounded-full hover:bg-sidebar-accent md:hidden ${tab ? 'invisible' : ''}`}
           >
             <Search className="size-5" />
           </button>
@@ -67,23 +74,52 @@ function Home() {
             <Plus className="size-5 md:size-4.5" />
           </button>
         </div>
-        <div className={`px-3 pb-2 ${searching ? '' : 'hidden md:block'}`}>
-          <SearchBox value={q} onChange={setQ} />
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">
-          {list.map((x) => (
-            <Row key={x.id} chat={x} active={x.id === open} onClick={() => go(x.id)} onDelete={() => setDeleting(x)} />
-          ))}
-          {!chats.length && (
+        <div role="tablist" className="mx-3 mb-2 grid shrink-0 grid-cols-2 rounded-lg bg-muted p-0.5 text-sm">
+          {[
+            { id: undefined, name: 'Chats' },
+            { id: 'automations' as const, name: 'Automations', count: automations.filter((a) => a.on).length },
+          ].map((x) => (
             <button
-              onClick={() => go('new')}
-              className="mx-auto mt-10 flex flex-col items-center gap-3 text-sm text-muted-foreground"
+              key={x.name}
+              role="tab"
+              aria-selected={tab === x.id}
+              onClick={() => void nav({ search: { c: open, t: x.id } })}
+              className={`rounded-md py-1.5 ${tab === x.id ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground'}`}
             >
-              <Blob size={48} />
-              Start a chat
+              {x.name}
+              {!!x.count && ` · ${x.count}`}
             </button>
-          )}
+          ))}
         </div>
+        {tab === 'automations' ? (
+          <Automations open={open} onOpen={go} />
+        ) : (
+          <>
+            <div className={`px-3 pb-2 ${searching ? '' : 'hidden md:block'}`}>
+              <SearchBox value={q} onChange={setQ} />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">
+              {list.map((x) => (
+                <Row
+                  key={x.id}
+                  chat={x}
+                  active={x.id === open}
+                  onClick={() => go(x.id)}
+                  onDelete={() => setDeleting(x)}
+                />
+              ))}
+              {!chats.length && (
+                <button
+                  onClick={() => go('new')}
+                  className="mx-auto mt-10 flex flex-col items-center gap-3 text-sm text-muted-foreground"
+                >
+                  <Blob size={48} />
+                  Start a chat
+                </button>
+              )}
+            </div>
+          </>
+        )}
         <div className="border-t border-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <Link
             to="/settings"

@@ -11,6 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ARouteImport } from './routes/a'
+import { Route as AutoARouteImport } from './routes/auto-a'
+import { Route as AutoBRouteImport } from './routes/auto-b'
+import { Route as AutoCRouteImport } from './routes/auto-c'
+import { Route as AutoDRouteImport } from './routes/auto-d'
+import { Route as AutoERouteImport } from './routes/auto-e'
 import { Route as BRouteImport } from './routes/b'
 import { Route as CRouteImport } from './routes/c'
 
@@ -22,6 +27,31 @@ const IndexRoute = IndexRouteImport.update({
 const ARoute = ARouteImport.update({
   id: '/a',
   path: '/a',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutoARoute = AutoARouteImport.update({
+  id: '/auto-a',
+  path: '/auto-a',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutoBRoute = AutoBRouteImport.update({
+  id: '/auto-b',
+  path: '/auto-b',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutoCRoute = AutoCRouteImport.update({
+  id: '/auto-c',
+  path: '/auto-c',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutoDRoute = AutoDRouteImport.update({
+  id: '/auto-d',
+  path: '/auto-d',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutoERoute = AutoERouteImport.update({
+  id: '/auto-e',
+  path: '/auto-e',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BRoute = BRouteImport.update({
@@ -38,12 +68,22 @@ const CRoute = CRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/a': typeof ARoute
+  '/auto-a': typeof AutoARoute
+  '/auto-b': typeof AutoBRoute
+  '/auto-c': typeof AutoCRoute
+  '/auto-d': typeof AutoDRoute
+  '/auto-e': typeof AutoERoute
   '/b': typeof BRoute
   '/c': typeof CRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/a': typeof ARoute
+  '/auto-a': typeof AutoARoute
+  '/auto-b': typeof AutoBRoute
+  '/auto-c': typeof AutoCRoute
+  '/auto-d': typeof AutoDRoute
+  '/auto-e': typeof AutoERoute
   '/b': typeof BRoute
   '/c': typeof CRoute
 }
@@ -51,20 +91,58 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/a': typeof ARoute
+  '/auto-a': typeof AutoARoute
+  '/auto-b': typeof AutoBRoute
+  '/auto-c': typeof AutoCRoute
+  '/auto-d': typeof AutoDRoute
+  '/auto-e': typeof AutoERoute
   '/b': typeof BRoute
   '/c': typeof CRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/a' | '/b' | '/c'
+  fullPaths:
+    | '/'
+    | '/a'
+    | '/auto-a'
+    | '/auto-b'
+    | '/auto-c'
+    | '/auto-d'
+    | '/auto-e'
+    | '/b'
+    | '/c'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/a' | '/b' | '/c'
-  id: '__root__' | '/' | '/a' | '/b' | '/c'
+  to:
+    | '/'
+    | '/a'
+    | '/auto-a'
+    | '/auto-b'
+    | '/auto-c'
+    | '/auto-d'
+    | '/auto-e'
+    | '/b'
+    | '/c'
+  id:
+    | '__root__'
+    | '/'
+    | '/a'
+    | '/auto-a'
+    | '/auto-b'
+    | '/auto-c'
+    | '/auto-d'
+    | '/auto-e'
+    | '/b'
+    | '/c'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ARoute: typeof ARoute
+  AutoARoute: typeof AutoARoute
+  AutoBRoute: typeof AutoBRoute
+  AutoCRoute: typeof AutoCRoute
+  AutoDRoute: typeof AutoDRoute
+  AutoERoute: typeof AutoERoute
   BRoute: typeof BRoute
   CRoute: typeof CRoute
 }
@@ -83,6 +161,41 @@ declare module '@tanstack/react-router' {
       path: '/a'
       fullPath: '/a'
       preLoaderRoute: typeof ARouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auto-a': {
+      id: '/auto-a'
+      path: '/auto-a'
+      fullPath: '/auto-a'
+      preLoaderRoute: typeof AutoARouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auto-b': {
+      id: '/auto-b'
+      path: '/auto-b'
+      fullPath: '/auto-b'
+      preLoaderRoute: typeof AutoBRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auto-c': {
+      id: '/auto-c'
+      path: '/auto-c'
+      fullPath: '/auto-c'
+      preLoaderRoute: typeof AutoCRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auto-d': {
+      id: '/auto-d'
+      path: '/auto-d'
+      fullPath: '/auto-d'
+      preLoaderRoute: typeof AutoDRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auto-e': {
+      id: '/auto-e'
+      path: '/auto-e'
+      fullPath: '/auto-e'
+      preLoaderRoute: typeof AutoERouteImport
       parentRoute: typeof rootRouteImport
     }
     '/b': {
@@ -105,6 +218,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ARoute: ARoute,
+  AutoARoute: AutoARoute,
+  AutoBRoute: AutoBRoute,
+  AutoCRoute: AutoCRoute,
+  AutoDRoute: AutoDRoute,
+  AutoERoute: AutoERoute,
   BRoute: BRoute,
   CRoute: CRoute,
 }

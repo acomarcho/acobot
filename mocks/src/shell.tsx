@@ -11,7 +11,22 @@ export function Shell({
   go,
   list,
   avatar = (c, size) => <Blob seed={c.id} size={size} />,
+  top,
+  pane,
+  footer,
+  sidebar,
+  composer,
 }: {
+  // Shown above the chat list.
+  top?: ReactNode;
+  // Takes the place of the conversation when set (an automation page, a form).
+  pane?: ReactNode;
+  // Shown above the account menu.
+  footer?: ReactNode;
+  // Replaces the whole sidebar body (search + list).
+  sidebar?: ReactNode;
+  // Replaces the normal composer.
+  composer?: (chat: Chat | undefined) => ReactNode;
   open?: string; // chat id, 'new', or undefined
   go: (id?: string) => void;
   list: (q: string) => ReactNode;
@@ -30,7 +45,7 @@ export function Shell({
 
   return (
     <Theme className="flex h-dvh">
-      <aside className={`${open ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col bg-sidebar pt-[env(safe-area-inset-top)] md:w-72 md:border-r md:border-border`}>
+      <aside className={`${open || pane ? 'hidden md:flex' : 'flex'} w-full shrink-0 flex-col bg-sidebar pt-[env(safe-area-inset-top)] md:w-72 md:border-r md:border-border`}>
         {/* Phone header */}
         <div className="flex h-14 shrink-0 items-center gap-1 px-3 md:hidden">
           <div className="mr-auto">
@@ -52,16 +67,26 @@ export function Shell({
             <Plus className="size-4.5" />
           </button>
         </div>
-        <div className={`px-3 pb-2 ${searching ? '' : 'hidden md:block'}`}>
-          <SearchBox value={q} onChange={setQ} />
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">{list(q.toLowerCase())}</div>
+        {sidebar ?? (
+          <>
+            <div className={`px-3 pb-2 ${searching ? '' : 'hidden md:block'}`}>
+              <SearchBox value={q} onChange={setQ} />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">
+              {top}
+              {list(q.toLowerCase())}
+            </div>
+          </>
+        )}
+        {footer}
         <div className="hidden border-t border-border p-2 md:block">
           <AccountMenu />
         </div>
       </aside>
 
-      {open && (
+      {pane && <main className="flex min-w-0 flex-1 flex-col pt-[env(safe-area-inset-top)]">{pane}</main>}
+
+      {open && !pane && (
         <main className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-2 pt-[env(safe-area-inset-top)] md:px-4">
             <button onClick={() => go()} aria-label="Back" className="grid size-10 place-items-center rounded-full hover:bg-muted md:hidden">
@@ -88,12 +113,12 @@ export function Shell({
             </div>
           )}
           <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6">
-            <Composer key={open} chat={chat} onSent={(id) => !chat && go(id)} />
+            {composer ? composer(chat) : <Composer key={open} chat={chat} onSent={(id) => !chat && go(id)} />}
           </div>
         </main>
       )}
 
-      {!open && (
+      {!open && !pane && (
         <main className="hidden flex-1 flex-col items-center justify-center gap-3 text-muted-foreground md:flex">
           <Blob seed={BOT} size={56} />
         </main>

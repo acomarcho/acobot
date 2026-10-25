@@ -312,8 +312,8 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       return { models, default: first.find(listed) ?? '', defaultAccess };
     },
 
-    // `body.model` must be one from models(), and `body.botId` a bot.
-    async create(body: Required<NewChat>): Promise<Chat> {
+    // `body.model` must be one from models(), and `body.botId` a bot. `automationId` is the automation starting it.
+    async create(body: Required<NewChat>, automationId: string | null = null): Promise<Chat> {
       const bot = bots.get(body.botId)!;
       // Read first: if the memory cannot be read, no session is left behind.
       const brief = bots.brief(bot);
@@ -333,6 +333,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
           title: body.text.split('\n')[0].slice(0, 70) || filesOf(body.files)[0].name,
           access: body.access,
           model: body.model,
+          automationId,
           status: 'working',
           statusAt: now,
           createdAt: now,

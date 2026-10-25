@@ -27,7 +27,10 @@ export type Chat = {
   statusAt: number;
   // Something new happened since the chat was last open.
   unread: boolean;
+  createdAt: number;
   updatedAt: number;
+  // The automation that started this chat. Null when a person did, or when that automation is deleted.
+  automationId: string | null;
 };
 
 // A file someone uploaded. It sits on the server and is served at `FILES_PATH/<id>`.
@@ -93,9 +96,30 @@ export type Models = { models: Model[]; default: string; defaultAccess: Access }
 
 export type Settings = { defaultModel: string; defaultAccess: Access };
 
+// When an automation runs: at `time` ('HH:MM', 24 hours) on `days` of the week (0 is Monday, 6 is Sunday), on the
+// server machine's own clock. The first WebSocket message says which clock that is (`utcOffset`).
+export type Schedule = { time: string; days: number[] };
+
+// A message sent to a bot in a fresh chat at set times, with the same settings a new chat has. `on` is false while
+// it is paused. Without a name it goes by the first line of its message.
+export type NewAutomation = Schedule & {
+  name: string;
+  text: string;
+  botId: string;
+  model: string;
+  access: Access;
+  on: boolean;
+};
+// `nextAt` is the moment it runs next, or null while it is paused.
+export type Automation = NewAutomation & { id: string; nextAt: number | null };
+
 // What the server pushes over the WebSocket. `item` carries the whole item, so getting it twice is harmless.
+// `utcOffset` is how many minutes the server machine's clock is ahead of UTC right now (420 for UTC+7).
 export type ServerEvent =
-  | { type: 'hello'; chats: Chat[] }
+  | { type: 'hello'; chats: Chat[]; automations: Automation[]; utcOffset: number }
+  // An automation was made or changed, or has just run (so it runs next at another time).
+  | { type: 'automation'; automation: Automation }
+  | { type: 'automation-gone'; id: string }
   | { type: 'chat'; chat: Chat }
   // A chat that was deleted. Not `chatId`: every browser drops it from the list, not only the one that has it open.
   | { type: 'deleted'; id: string }
@@ -122,3 +146,4 @@ export const imageType = (name: string): string | undefined => IMAGE_TYPES[name.
 export const SERVER_PORT = 5374;
 export const WS_PATH = '/ws';
 export const FILES_PATH = '/api/files';
+export const AUTOMATIONS_PATH = '/api/automations';
