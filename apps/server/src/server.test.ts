@@ -999,6 +999,21 @@ test('an automation keeps a reasoning level of its model, and runs its chats on 
   expect(fake.calls.create[0].model).toEqual({ providerID: 'opencode-go', id: 'kimi-k3.1-pro', variant: 'high' });
 });
 
+test('an automation can be renamed or paused while OpenCode is down, as long as its model and level stay the same', async () => {
+  const fake = fakeOpencode('chat');
+  const { post, server } = await boot(fake.oc);
+  const { body: auto } = await post(AUTOMATIONS_PATH, { ...AUTOMATION, reasoning: 'high' });
+  server.runner.detach();
+  const paused = await post(`${AUTOMATIONS_PATH}/${auto.id}`, { ...auto, name: 'Paused digest', on: false });
+  expect(paused.status).toBe(200);
+  expect(paused.body).toMatchObject({ name: 'Paused digest', on: false, reasoning: 'high', nextAt: null });
+  // A changed level is checked against the model, which needs OpenCode.
+  expect(
+    (await post(`${AUTOMATIONS_PATH}/${auto.id}`, { ...auto, name: 'Paused digest', reasoning: 'low', on: false }))
+      .status,
+  ).toBe(502);
+});
+
 test('the scheduler runs an automation once its time comes, once, then moves on to its next time; never a paused one', async () => {
   const fake = fakeOpencode('chat');
   const { base, post, server } = await boot(fake.oc);

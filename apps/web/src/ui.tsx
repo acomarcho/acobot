@@ -1072,23 +1072,24 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
             access={access}
             onChange={(a) => (chat ? void setAccess(chat.id, a).catch((err) => alert(err.message)) : setNewAccess(a))}
           />
+          {/* The model and its level stay together on one line, which is their own line on phones. */}
           {models && (
-            <ModelPicker
-              up
-              models={models.models}
-              value={model}
-              onChange={chooseModel}
-              className="flex max-w-full items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
-            />
-          )}
-          {models && (
-            <ReasoningPicker
-              up
-              levels={levels}
-              value={reasoning}
-              onChange={chooseReasoning}
-              className="flex max-w-full items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
-            />
+            <div className="flex min-w-0 items-center gap-1 max-md:basis-full">
+              <ModelPicker
+                up
+                models={models.models}
+                value={model}
+                onChange={chooseModel}
+                className="flex max-w-full items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+              />
+              <ReasoningPicker
+                up
+                levels={levels}
+                value={reasoning}
+                onChange={chooseReasoning}
+                className="flex max-w-full items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+              />
+            </div>
           )}
         </div>
         {busy && !ready ? (

@@ -49,13 +49,14 @@ function readBot(body: Record<string, unknown>): NewBot | null {
 }
 
 // What an automation is made of, or null if any part cannot be used. Without a name it goes by the first line of its
-// message. `pickable` says whether a model can be picked; the model an automation already had (`kept`) is taken as it
-// is, so one whose model went away can still be paused or changed. The reasoning level is one of that model's, or ''.
+// message. `pickable` says whether a model can be picked. An automation whose model and reasoning level are unchanged
+// (`kept`) is taken as it is, without asking OpenCode, so it can still be renamed, rescheduled or paused while
+// OpenCode is down. Any other model or level is checked against the model.
 async function readAutomation(
   body: Record<string, unknown>,
   bots: Bots,
   pickable: (id: unknown) => Promise<Model | undefined>,
-  kept?: string,
+  kept?: { model: string; reasoning: string },
 ): Promise<NewAutomation | null> {
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   const named = typeof body.name === 'string' ? body.name.trim() : '';
@@ -63,10 +64,14 @@ async function readAutomation(
   const bot = bots.get(body.botId);
   const model = typeof body.model === 'string' ? body.model : '';
   if (!text || !schedule || !bot || !isAccess(body.access) || typeof body.on !== 'boolean') return null;
-  const picked = await pickable(model);
-  if (model !== kept && !picked) return null;
+  const unchanged = !!kept && model === kept.model && body.reasoning === kept.reasoning;
+  const picked = unchanged ? undefined : await pickable(model);
+  if (model !== kept?.model && !picked) return null;
   // A model that is gone keeps the level it was given; any other must have it.
-  const reasoning = picked ? levelOf(picked, body.reasoning) : body.reasoning;
+  let reasoning: unknown;
+  if (picked) reasoning = levelOf(picked, body.reasoning);
+  else if (unchanged) reasoning = kept!.reasoning;
+  else reasoning = body.reasoning;
   if (typeof reasoning !== 'string') return null;
   const name = (named || text.split('\n')[0]).slice(0, 60);
   return { ...schedule, name, text, botId: bot.id, model, reasoning, access: body.access, on: body.on };
@@ -164,7 +169,8 @@ export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
     if (!model) return c.json({ error: 'This chat has no model to reason with.' }, 400);
     const level = levelOf(model, reasoning);
     if (level === undefined) return c.json({ error: 'Not a reasoning level that model has.' }, 400);
-    return c.json(await runner.setReasoning(chat.id, level));
+    const updated = await runner.setReasoning(chat.id, level);
+    return updated ? c.json(updated) : c.json({ error: 'Chat not found.' }, 404);
   });
 
   app.post('/api/chats/:id/delete', async (c) => {
@@ -218,7 +224,10 @@ export function createApp({ db, home, uploads, bots: botsDir, web }: Deps) {
   app.post(`${AUTOMATIONS_PATH}/:id`, async (c) => {
     const old = automations.find(c.req.param('id'));
     if (!old) return c.json({ error: 'Automation not found.' }, 404);
-    const automation = await readAutomation(await c.req.json().catch(() => ({})), bots, pickable, old.model);
+    const automation = await readAutomation(await c.req.json().catch(() => ({})), bots, pickable, {
+      model: old.model,
+      reasoning: old.reasoning,
+    });
     return automation ? c.json(automations.edit(old.id, automation)) : c.json({ error: NOT_AN_AUTOMATION }, 400);
   });
 
