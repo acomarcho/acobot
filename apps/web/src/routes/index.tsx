@@ -1,17 +1,30 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, PanelRight, Plus, Search, Settings } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../store';
 import type { Chat } from '@acobot/shared';
 import { Automations } from '../automations';
-import { Blob, Composer, DeleteDialog, Details, Messages, Row, SearchBox, ThemeButton, useStickToBottom } from '../ui';
+import { draftRows, dropDraft, useDrafts } from '../drafts';
+import {
+  Blob,
+  Composer,
+  DeleteDialog,
+  Details,
+  DraftRow,
+  Messages,
+  Row,
+  SearchBox,
+  ThemeButton,
+  useStickToBottom,
+} from '../ui';
 
-// `?c=` is the chat on screen, or `new` for the new chat screen. Without it, phones show the chat list.
-// `?t=automations` shows the Automations tab in the sidebar instead of the chats.
-type Search = { c?: string; t?: 'automations' };
+// `?c=` is the chat on screen, or `new` for a chat not started yet. `?d=` says which of those (`new` when the
+// address has none). `?t=automations` shows the Automations tab in the sidebar instead of the chats.
+type Search = { c?: string; t?: 'automations'; d?: string };
 export const Route = createFileRoute('/')({
   validateSearch: (s: Record<string, unknown>): Search => ({
     c: typeof s.c === 'string' ? s.c : undefined,
+    d: typeof s.d === 'string' ? s.d : undefined,
     t: s.t === 'automations' ? s.t : undefined,
   }),
   component: Home,
@@ -21,17 +34,31 @@ export const Route = createFileRoute('/')({
 // On phones the list is its own screen and a chat opens full screen.
 function Home() {
   const { chats, automations, items, openChat } = useApp();
-  const { c: open, t: tab } = Route.useSearch();
+  const { c: open, d, t: tab } = Route.useSearch();
   const nav = Route.useNavigate();
   const go = (id?: string) => void nav({ search: { c: id, t: tab } });
+  // Each new chat gets an id, so several can be left unsent. `?c=new` without one uses the draft called `new`.
+  const draftId = d ?? 'new';
+  const openNew = (id: string = crypto.randomUUID(), replace = false) =>
+    void nav({ search: { c: 'new', d: id, t: tab }, replace });
   // A chat made on the new-chat screen takes its place in history, so Back goes to the thread list and not to
-  // the empty screen the chat started from.
-  const started = (id: string) => void nav({ search: { c: id, t: tab }, replace: true });
+  // the empty screen the chat started from. If the person moved on to another screen while the chat was being
+  // made, it only appears in the list; it does not pull them back.
+  const screen = useRef({ open, draftId, tab });
+  useEffect(() => {
+    screen.current = { open, draftId, tab };
+  }, [open, draftId, tab]);
+  const started = (id: string, fromDraft: string) => {
+    const now = screen.current;
+    if (now.open === 'new' && now.draftId === fromDraft) void nav({ search: { c: id, t: now.tab }, replace: true });
+  };
   const [q, setQ] = useState('');
   const [searching, setSearching] = useState(false);
   const [details, setDetails] = useState(false);
   const [deleting, setDeleting] = useState<Chat | null>(null);
   const chat = chats.find((x) => x.id === open);
+  const drafts = draftRows(useDrafts());
+  const boxId = chat?.id ?? draftId;
   const { ref: scrollRef, onScroll, onWheel } = useStickToBottom(items, open);
   const chatId = chat?.id ?? null;
 
@@ -70,7 +97,7 @@ function Home() {
             <Search className="size-5" />
           </button>
           <button
-            onClick={() => go('new')}
+            onClick={() => openNew()}
             aria-label="New chat"
             className="grid size-10 place-items-center rounded-full text-muted-foreground hover:bg-sidebar-accent hover:text-foreground md:size-8 md:rounded-lg"
           >
@@ -86,7 +113,7 @@ function Home() {
               key={x.name}
               role="tab"
               aria-selected={tab === x.id}
-              onClick={() => void nav({ search: { c: open, t: x.id } })}
+              onClick={() => void nav({ search: { c: open, d: open === 'new' ? draftId : undefined, t: x.id } })}
               className={`rounded-md py-1.5 ${tab === x.id ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground'}`}
             >
               {x.name}
@@ -102,6 +129,19 @@ function Home() {
               <SearchBox value={q} onChange={setQ} />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">
+              {drafts.map(([id, draft]) => (
+                <DraftRow
+                  key={id}
+                  draft={draft}
+                  active={open === 'new' && draftId === id}
+                  onClick={() => openNew(id)}
+                  onDiscard={() => {
+                    dropDraft(id);
+                    // Throwing away the one on screen leaves a fresh, empty one, in place of the one thrown away.
+                    if (open === 'new' && draftId === id) openNew(undefined, true);
+                  }}
+                />
+              ))}
               {list.map((x) => (
                 <Row
                   key={x.id}
@@ -111,9 +151,9 @@ function Home() {
                   onDelete={() => setDeleting(x)}
                 />
               ))}
-              {!chats.length && (
+              {!chats.length && !drafts.length && (
                 <button
-                  onClick={() => go('new')}
+                  onClick={() => openNew()}
                   className="mx-auto mt-10 flex flex-col items-center gap-3 text-sm text-muted-foreground"
                 >
                   <Blob size={48} />
@@ -174,7 +214,7 @@ function Home() {
             </div>
           )}
           <div className="mx-auto w-full max-w-3xl px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6">
-            <Composer key={open} chat={chat} onCreated={started} />
+            {(chat || open === 'new') && <Composer key={boxId} chat={chat} draftId={boxId} onCreated={started} />}
           </div>
         </main>
       ) : (
