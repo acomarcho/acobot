@@ -1,6 +1,25 @@
 {
   "list": [
     {
+      "id": "iceman-contributor-free",
+      "modelID": "iceman-contributor-free",
+      "providerID": "opencode-go",
+      "name": "Iceman Contributor Free",
+      "cost": [
+        {
+          "input": 0,
+          "output": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": []
+    },
+    {
       "id": "kimi-k3.1-pro",
       "modelID": "kimi-k3.1-pro",
       "providerID": "opencode-go",
@@ -16,7 +35,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "flint-40b-free",
@@ -34,7 +64,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "minimax-m3.1-flash",
@@ -52,7 +99,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "nemotron-3.5-super-vl-free",
@@ -70,25 +134,56 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
-      "id": "gemini-4-argon-contributor",
-      "modelID": "gemini-4-argon-contributor",
+      "id": "gemini-4-argon",
+      "modelID": "gemini-4-argon",
       "providerID": "opencode-go",
-      "name": "Gemini 4 Argon Contributor",
+      "name": "Gemini 4 Argon",
       "cost": [
         {
-          "input": 4,
-          "output": 20,
+          "input": 2,
+          "output": 10,
           "cache": {
-            "read": 0.2,
+            "read": 0.1,
             "write": 0
           }
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "claude-haiku-5-5",
@@ -118,7 +213,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "beam-free",
@@ -136,7 +251,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "beam-free",
@@ -154,7 +286,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6.1-sol",
@@ -184,7 +333,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6.1-sol-fast",
@@ -214,7 +380,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6.1-sol-pro",
@@ -244,7 +427,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6.1-sol-ultrafast",
@@ -274,25 +474,43 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
-      "id": "mimo-v2.6-pro",
-      "modelID": "mimo-v2.6-pro",
+      "id": "mimo-v2.6-flash",
+      "modelID": "mimo-v2.6-flash",
       "providerID": "opencode-go",
-      "name": "MiMo-V2.6-Pro",
+      "name": "MiMo-V2.6-Flash",
       "cost": [
         {
-          "input": 0.435,
-          "output": 0.87,
+          "input": 0.14,
+          "output": 0.28,
           "cache": {
-            "read": 0.003625,
+            "read": 0.0028,
             "write": 0
           }
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-6-luna",
@@ -322,43 +540,46 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
-      "id": "mimo-v2.6-flash",
-      "modelID": "mimo-v2.6-flash",
+      "id": "mimo-v2.6-pro",
+      "modelID": "mimo-v2.6-pro",
       "providerID": "opencode-go",
-      "name": "MiMo-V2.6-Flash",
+      "name": "MiMo-V2.6-Pro",
       "cost": [
         {
-          "input": 0.14,
-          "output": 0.28,
+          "input": 0.435,
+          "output": 0.87,
           "cache": {
-            "read": 0.0028,
+            "read": 0.003625,
             "write": 0
           }
         }
       ],
       "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "mimo-v2.6-flash-free",
-      "modelID": "mimo-v2.6-flash-free",
-      "providerID": "opencode",
-      "name": "MiMo-V2.6-Flash Free",
-      "cost": [
-        {
-          "input": 0,
-          "output": 0,
-          "cache": {
-            "read": 0,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-6-luna",
@@ -388,7 +609,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-luna-fast",
@@ -418,7 +659,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-luna-pro",
@@ -448,7 +709,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-sol",
@@ -478,7 +759,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-sol-fast",
@@ -508,7 +809,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-sol-pro",
@@ -538,7 +859,46 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
+    },
+    {
+      "id": "mimo-v2.6-flash-free",
+      "modelID": "mimo-v2.6-flash-free",
+      "providerID": "opencode",
+      "name": "MiMo-V2.6-Flash Free",
+      "cost": [
+        {
+          "input": 0,
+          "output": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": []
     },
     {
       "id": "grok-4.7",
@@ -568,7 +928,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "step-5-preview",
@@ -586,7 +960,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "deepseek-v4.1-flash",
@@ -604,7 +989,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "deepseek-v4.1-flash-free",
@@ -622,7 +1018,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-astra",
@@ -652,7 +1059,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-astra-fast",
@@ -682,7 +1106,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-astra-pro",
@@ -712,7 +1153,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-6-astra-ultrafast",
@@ -742,7 +1200,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "muse-spark-1.3-contributor",
@@ -760,7 +1235,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "hy4-preview",
@@ -778,7 +1270,15 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "qwen3.8-flash",
@@ -796,7 +1296,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "glm-5.3-flash",
@@ -814,7 +1328,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "glm-5.3-flash-free",
@@ -832,7 +1357,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "glm-5.3",
@@ -850,7 +1386,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "nemotron-3.5-lightning-free",
@@ -868,7 +1415,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-daybreak-blue-latest",
@@ -898,7 +1446,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-daybreak-red-latest",
@@ -916,7 +1484,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "muse-spark-1.2-contributor",
@@ -934,7 +1522,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "qwen3.8-max",
@@ -952,7 +1557,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "kimi-k3",
@@ -970,7 +1589,12 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-luna",
@@ -1000,97 +1624,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.6-terra",
-      "modelID": "gpt-5.6-terra",
-      "providerID": "openai",
-      "name": "GPT-5.6 Terra",
-      "cost": [
+      "status": "active",
+      "variants": [
         {
-          "input": 2,
-          "output": 12,
-          "cache": {
-            "read": 0.2,
-            "write": 2.5
-          }
+          "id": "none"
         },
         {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 4,
-          "output": 18,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.6-terra-fast",
-      "modelID": "gpt-5.6-terra",
-      "providerID": "openai",
-      "name": "GPT-5.6 Terra Fast",
-      "cost": [
-        {
-          "input": 4,
-          "output": 24,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
+          "id": "low"
         },
         {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 4,
-          "output": 18,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.6-terra-pro",
-      "modelID": "gpt-5.6-terra",
-      "providerID": "openai",
-      "name": "GPT-5.6 Terra Pro",
-      "cost": [
-        {
-          "input": 2,
-          "output": 12,
-          "cache": {
-            "read": 0.2,
-            "write": 2.5
-          }
+          "id": "medium"
         },
         {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 4,
-          "output": 18,
-          "cache": {
-            "read": 0.4,
-            "write": 5
-          }
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
         }
-      ],
-      "enabled": true,
-      "status": "active"
+      ]
     },
     {
       "id": "gpt-5.6",
@@ -1120,7 +1674,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-fast",
@@ -1150,7 +1724,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-pro",
@@ -1180,7 +1774,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-luna",
@@ -1210,7 +1824,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-luna-fast",
@@ -1240,7 +1874,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-luna-pro",
@@ -1270,7 +1924,177 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "modelID": "gpt-5.6-terra",
+      "providerID": "openai",
+      "name": "GPT-5.6 Terra",
+      "cost": [
+        {
+          "input": 2,
+          "output": 12,
+          "cache": {
+            "read": 0.2,
+            "write": 2.5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 4,
+          "output": 18,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
+    },
+    {
+      "id": "gpt-5.6-terra-fast",
+      "modelID": "gpt-5.6-terra",
+      "providerID": "openai",
+      "name": "GPT-5.6 Terra Fast",
+      "cost": [
+        {
+          "input": 4,
+          "output": 24,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 4,
+          "output": 18,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
+    },
+    {
+      "id": "gpt-5.6-terra-pro",
+      "modelID": "gpt-5.6-terra",
+      "providerID": "openai",
+      "name": "GPT-5.6 Terra Pro",
+      "cost": [
+        {
+          "input": 2,
+          "output": 12,
+          "cache": {
+            "read": 0.2,
+            "write": 2.5
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 4,
+          "output": 18,
+          "cache": {
+            "read": 0.4,
+            "write": 5
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-sol",
@@ -1300,7 +2124,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-sol-fast",
@@ -1330,7 +2174,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "gpt-5.6-sol-pro",
@@ -1360,7 +2224,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "hy3",
@@ -1378,7 +2262,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-realtime-2.1",
@@ -1396,7 +2291,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "longcat-2.0",
@@ -1414,7 +2326,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "glm-5.2",
@@ -1432,7 +2345,15 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "kimi-k2.7-code",
@@ -1450,7 +2371,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "nemotron-3-ultra-free",
@@ -1468,7 +2390,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "qwen3.7-plus",
@@ -1498,7 +2421,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     },
     {
       "id": "minimax-m3",
@@ -1528,7 +2462,15 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "thinking"
+        }
+      ]
     },
     {
       "id": "deepseek-v4-pro",
@@ -1546,67 +2488,15 @@
         }
       ],
       "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.5",
-      "modelID": "gpt-5.5",
-      "providerID": "openai",
-      "name": "GPT-5.5",
-      "cost": [
+      "status": "active",
+      "variants": [
         {
-          "input": 5,
-          "output": 30,
-          "cache": {
-            "read": 0.5,
-            "write": 0
-          }
+          "id": "high"
         },
         {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 10,
-          "output": 45,
-          "cache": {
-            "read": 1,
-            "write": 0
-          }
+          "id": "max"
         }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.5-fast",
-      "modelID": "gpt-5.5",
-      "providerID": "openai",
-      "name": "GPT-5.5 Fast",
-      "cost": [
-        {
-          "input": 12.5,
-          "output": 75,
-          "cache": {
-            "read": 1.25,
-            "write": 0
-          }
-        },
-        {
-          "tier": {
-            "type": "context",
-            "size": 272000
-          },
-          "input": 10,
-          "output": 45,
-          "cache": {
-            "read": 1,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
+      ]
     },
     {
       "id": "gpt-5.5-pro",
@@ -1636,25 +2526,112 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
-      "id": "mimo-v2.5",
-      "modelID": "mimo-v2.5",
-      "providerID": "opencode-go",
-      "name": "MiMo V2.5",
+      "id": "gpt-5.5",
+      "modelID": "gpt-5.5",
+      "providerID": "openai",
+      "name": "GPT-5.5",
       "cost": [
         {
-          "input": 0.14,
-          "output": 0.28,
+          "input": 5,
+          "output": 30,
           "cache": {
-            "read": 0.0028,
+            "read": 0.5,
+            "write": 0
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 10,
+          "output": 45,
+          "cache": {
+            "read": 1,
             "write": 0
           }
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
+    },
+    {
+      "id": "gpt-5.5-fast",
+      "modelID": "gpt-5.5",
+      "providerID": "openai",
+      "name": "GPT-5.5 Fast",
+      "cost": [
+        {
+          "input": 12.5,
+          "output": 75,
+          "cache": {
+            "read": 1.25,
+            "write": 0
+          }
+        },
+        {
+          "tier": {
+            "type": "context",
+            "size": 272000
+          },
+          "input": 10,
+          "output": 45,
+          "cache": {
+            "read": 1,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "mimo-v2.5-pro",
@@ -1672,7 +2649,27 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
+    },
+    {
+      "id": "mimo-v2.5",
+      "modelID": "mimo-v2.5",
+      "providerID": "opencode-go",
+      "name": "MiMo V2.5",
+      "cost": [
+        {
+          "input": 0.14,
+          "output": 0.28,
+          "cache": {
+            "read": 0.0028,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-5.4-mini",
@@ -1690,7 +2687,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.4-mini-fast",
@@ -1708,7 +2722,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.4-mini-flex",
@@ -1726,7 +2757,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.4-nano",
@@ -1744,7 +2792,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.4-nano-flex",
@@ -1762,7 +2827,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.4",
@@ -1792,7 +2874,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.4-fast",
@@ -1822,7 +2921,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.4-pro",
@@ -1852,7 +2968,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.3-codex-spark",
@@ -1870,7 +2997,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.3-codex",
@@ -1888,7 +3032,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.3-codex-fast",
@@ -1906,7 +3067,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "chatgpt-image-latest",
@@ -1924,25 +3102,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-5.2-pro",
-      "modelID": "gpt-5.2-pro",
-      "providerID": "openai",
-      "name": "GPT-5.2 Pro",
-      "cost": [
-        {
-          "input": 21,
-          "output": 168,
-          "cache": {
-            "read": 0,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-5.2",
@@ -1960,7 +3121,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.2-fast",
@@ -1978,7 +3156,24 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-5.2-flex",
@@ -1996,7 +3191,53 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
+    },
+    {
+      "id": "gpt-5.2-pro",
+      "modelID": "gpt-5.2-pro",
+      "providerID": "openai",
+      "name": "GPT-5.2 Pro",
+      "cost": [
+        {
+          "input": 21,
+          "output": 168,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": [
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "xhigh"
+        }
+      ]
     },
     {
       "id": "gpt-image-1.5",
@@ -2014,7 +3255,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-5.1",
@@ -2032,7 +3274,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5.1-fast",
@@ -2050,7 +3306,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5.1-flex",
@@ -2068,7 +3338,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "big-pickle",
@@ -2086,7 +3370,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-5-pro",
@@ -2104,7 +3389,12 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-image-1-mini",
@@ -2122,7 +3412,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-5-mini",
@@ -2140,7 +3431,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5-mini-fast",
@@ -2158,7 +3463,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5-mini-flex",
@@ -2176,7 +3495,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5-nano",
@@ -2194,7 +3527,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5-nano-flex",
@@ -2212,7 +3559,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5",
@@ -2230,7 +3591,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5-fast",
@@ -2248,7 +3623,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "gpt-5-flex",
@@ -2266,7 +3655,21 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "minimal"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "o3-pro",
@@ -2284,7 +3687,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "o3",
@@ -2302,7 +3716,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "o3-fast",
@@ -2320,7 +3745,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "o3-flex",
@@ -2338,43 +3774,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-4.1-mini",
-      "modelID": "gpt-4.1-mini",
-      "providerID": "openai",
-      "name": "GPT-4.1 mini",
-      "cost": [
+      "status": "active",
+      "variants": [
         {
-          "input": 0.4,
-          "output": 1.6,
-          "cache": {
-            "read": 0.1,
-            "write": 0
-          }
-        }
-      ],
-      "enabled": true,
-      "status": "active"
-    },
-    {
-      "id": "gpt-4.1-mini-fast",
-      "modelID": "gpt-4.1-mini",
-      "providerID": "openai",
-      "name": "GPT-4.1 mini Fast",
-      "cost": [
+          "id": "low"
+        },
         {
-          "input": 0.7,
-          "output": 2.8,
-          "cache": {
-            "read": 0.175,
-            "write": 0
-          }
+          "id": "medium"
+        },
+        {
+          "id": "high"
         }
-      ],
-      "enabled": true,
-      "status": "active"
+      ]
     },
     {
       "id": "gpt-4.1",
@@ -2392,7 +3803,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-4.1-fast",
@@ -2410,7 +3822,46 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
+    },
+    {
+      "id": "gpt-4.1-mini",
+      "modelID": "gpt-4.1-mini",
+      "providerID": "openai",
+      "name": "GPT-4.1 mini",
+      "cost": [
+        {
+          "input": 0.4,
+          "output": 1.6,
+          "cache": {
+            "read": 0.1,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": []
+    },
+    {
+      "id": "gpt-4.1-mini-fast",
+      "modelID": "gpt-4.1-mini",
+      "providerID": "openai",
+      "name": "GPT-4.1 mini Fast",
+      "cost": [
+        {
+          "input": 0.7,
+          "output": 2.8,
+          "cache": {
+            "read": 0.175,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-4o-2024-11-20",
@@ -2428,7 +3879,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-4o-2024-08-06",
@@ -2446,7 +3898,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-4o-mini",
@@ -2464,7 +3917,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-4o-mini-fast",
@@ -2482,7 +3936,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-4o",
@@ -2500,7 +3955,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "gpt-4o-fast",
@@ -2518,7 +3974,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "text-embedding-3-small",
@@ -2536,7 +3993,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "text-embedding-3-large",
@@ -2554,7 +4012,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "text-embedding-ada-002",
@@ -2572,7 +4031,8 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": []
     },
     {
       "id": "deepseek-v4.1-flash-uncensored",
@@ -2590,7 +4050,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "glm-5.3-uncensored",
@@ -2608,7 +4079,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "glm-5.3-flash-uncensored",
@@ -2626,7 +4108,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "mimo-v2.6-flash-uncensored",
@@ -2644,7 +4137,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "dolphin-mistral-24b-venice-edition",
@@ -2662,7 +4166,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "glm-5.3-abliterated",
@@ -2680,7 +4195,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "glm-5.3-flash-abliterated",
@@ -2698,7 +4224,18 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     },
     {
       "id": "deepseek-v4.1-flash-abliterated",
@@ -2716,25 +4253,37 @@
         }
       ],
       "enabled": true,
-      "status": "active"
+      "status": "active",
+      "variants": [
+        {
+          "id": "low"
+        },
+        {
+          "id": "medium"
+        },
+        {
+          "id": "high"
+        }
+      ]
     }
   ],
   "default": {
-    "id": "kimi-k3.1-pro",
-    "modelID": "kimi-k3.1-pro",
+    "id": "iceman-contributor-free",
+    "modelID": "iceman-contributor-free",
     "providerID": "opencode-go",
-    "name": "Kimi K3.1 Pro",
+    "name": "Iceman Contributor Free",
     "cost": [
       {
-        "input": 2,
-        "output": 10,
+        "input": 0,
+        "output": 0,
         "cache": {
-          "read": 0.2,
-          "write": 2
+          "read": 0,
+          "write": 0
         }
       }
     ],
     "enabled": true,
-    "status": "active"
+    "status": "active",
+    "variants": []
   }
 }

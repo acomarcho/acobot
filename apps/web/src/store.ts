@@ -151,6 +151,10 @@ export function useAppState() {
     const chat = await request<Chat>(`/api/chats/${chatId}/model`, { model });
     dispatch({ type: 'chat', chat });
   };
+  const setReasoning = async (chatId: string, reasoning: string) => {
+    const chat = await request<Chat>(`/api/chats/${chatId}/reasoning`, { reasoning });
+    dispatch({ type: 'chat', chat });
+  };
   const retitle = async (chatId: string) => {
     const chat = await request<Chat>(`/api/chats/${chatId}/title`, {});
     dispatch({ type: 'chat', chat });
@@ -188,6 +192,7 @@ export function useAppState() {
     sendMessage,
     setAccess,
     setModel,
+    setReasoning,
     retitle,
     deleteChat,
     answer,

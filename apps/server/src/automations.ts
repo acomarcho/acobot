@@ -62,9 +62,9 @@ export function openAutomations(db: Db, hub: Hub, runner: Runner) {
       .where(eq(automations.id, automation.id))
       .run();
 
-  // One run: the message in a fresh chat with the automation's bot, model and access.
-  const run = ({ id, text, botId, model, access }: Automation) =>
-    runner.create({ text, files: [], botId, model, access }, id);
+  // One run: the message in a fresh chat with the automation's bot, model, reasoning level and access.
+  const run = ({ id, text, botId, model, reasoning, access }: Automation) =>
+    runner.create({ text, files: [], botId, model, reasoning, access }, id);
 
   return {
     // Newest first, like the chats.

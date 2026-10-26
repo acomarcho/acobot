@@ -1,16 +1,17 @@
-import type {
-  Access,
-  Bot,
-  Chat,
-  Command,
-  Decision,
-  FileRef,
-  Item,
-  Model,
-  Models,
-  NewChat,
-  NewMessage,
-  Status,
+import {
+  reasoningName,
+  type Access,
+  type Bot,
+  type Chat,
+  type Command,
+  type Decision,
+  type FileRef,
+  type Item,
+  type Model,
+  type Models,
+  type NewChat,
+  type NewMessage,
+  type Status,
 } from '@acobot/shared';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -68,7 +69,19 @@ const groupOf = (m: ModelInfo) => PROVIDERS[m.providerID] ?? (free(m) ? 'Free' :
 const shown = (m: ModelInfo) => m.enabled && m.status !== 'deprecated' && !!groupOf(m);
 const idOf = (m: Pick<ModelInfo, 'providerID' | 'modelID'>) => `${m.providerID}/${m.modelID}`;
 // `provider/model` as OpenCode wants it. Only the first slash splits: model names may have slashes of their own.
-const refOf = (id: string) => ({ providerID: id.slice(0, id.indexOf('/')), id: id.slice(id.indexOf('/') + 1) });
+// `reasoning` is a level of that model, or '' to leave the model on its own default.
+const refOf = (id: string, reasoning = '') => ({
+  providerID: id.slice(0, id.indexOf('/')),
+  id: id.slice(id.indexOf('/') + 1),
+  ...(reasoning ? { variant: reasoning } : {}),
+});
+
+// The level to use for `model`: `wanted` when the model has it, '' for the model's own default, or undefined when the
+// model does not have that level. OpenCode takes any variant given to it without a word, so this is the check.
+export function levelOf(model: Model, wanted: unknown): string | undefined {
+  if (wanted === undefined || wanted === '') return '';
+  return typeof wanted === 'string' && model.levels.includes(wanted) ? wanted : undefined;
+}
 
 // Chat titles are written by this model, from the first few messages.
 const TITLE_MODEL = 'opencode-go/deepseek-v4.1-flash';
@@ -303,7 +316,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       const [list, fallback] = await Promise.all([client().model.list({}), client().model.default({})]);
       const models = list.data
         .filter(shown)
-        .map((m) => ({ id: idOf(m), name: m.name, group: groupOf(m)! }))
+        .map((m) => ({ id: idOf(m), name: m.name, group: groupOf(m)!, levels: m.variants.map((v) => v.id) }))
         // In GROUPS order; by name inside each.
         .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.name.localeCompare(b.name));
       const listed = (id?: string | null) => !!id && models.some((m) => m.id === id);
@@ -312,14 +325,15 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       return { models, default: first.find(listed) ?? '', defaultAccess };
     },
 
-    // `body.model` must be one from models(), and `body.botId` a bot. `automationId` is the automation starting it.
+    // `body.model` must be one from models(), `body.reasoning` a level of it (or ''), and `body.botId` a bot.
+    // `automationId` is the automation starting it.
     async create(body: Required<NewChat>, automationId: string | null = null): Promise<Chat> {
       const bot = bots.get(body.botId)!;
       // Read first: if the memory cannot be read, no session is left behind.
       const brief = bots.brief(bot);
       const session = await client().session.create({
         location: { directory: opts.home },
-        model: refOf(body.model),
+        model: refOf(body.model, body.reasoning),
         permissions: rules(body.access, bot),
       });
       await client().session.instructions.entry.put({ sessionID: session.id, key: BOT_KEY, value: brief });
@@ -333,6 +347,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
           title: body.text.split('\n')[0].slice(0, 70) || filesOf(body.files)[0].name,
           access: body.access,
           model: body.model,
+          reasoning: body.reasoning,
           automationId,
           status: 'working',
           statusAt: now,
@@ -360,14 +375,37 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       return setChat(chatId, { access }, false);
     },
 
-    // The next turn uses `model`. The chat says so, since earlier answers came from the old one.
+    // The next turn uses `model`. Its reasoning level is kept when the new model has it, and goes back to the model's
+    // own default when it does not. The chat says so, since earlier answers came from the old one.
     async setModel(chatId: string, model: Model) {
       const chat = row(chatId);
       if (!chat) return null;
-      await client().session.switchModel({ sessionID: chat.sessionId, model: refOf(model.id) });
-      const notice: Item = { id: randomUUID(), at: nextAt(), kind: 'notice', text: `Switched to ${model.name}` };
+      const reasoning = model.levels.includes(chat.reasoning) ? chat.reasoning : '';
+      await client().session.switchModel({ sessionID: chat.sessionId, model: refOf(model.id, reasoning) });
+      const level = reasoning ? ` · ${reasoningName(reasoning)}` : '';
+      const notice: Item = {
+        id: randomUUID(),
+        at: nextAt(),
+        kind: 'notice',
+        text: `Switched to ${model.name}${level}`,
+      };
       apply(chatId, [{ type: 'item', item: notice, save: true }]);
-      return setChat(chatId, { model: model.id }, false);
+      return setChat(chatId, { model: model.id, reasoning }, false);
+    },
+
+    // The next turn thinks as hard as `reasoning` says. The route has already checked it is a level of the chat's model.
+    async setReasoning(chatId: string, reasoning: string) {
+      const chat = row(chatId);
+      if (!chat) return null;
+      await client().session.switchModel({ sessionID: chat.sessionId, model: refOf(chat.model, reasoning) });
+      const notice: Item = {
+        id: randomUUID(),
+        at: nextAt(),
+        kind: 'notice',
+        text: `Reasoning: ${reasoningName(reasoning)}`,
+      };
+      apply(chatId, [{ type: 'item', item: notice, save: true }]);
+      return setChat(chatId, { reasoning }, false);
     },
 
     // False when nothing in the chat waits for this answer.
@@ -396,6 +434,8 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
     },
 
     has: (chatId: string) => row(chatId) !== undefined,
+    // The chat as the web app sees it, or undefined.
+    chat: (chatId: string) => db.select(chatCols).from(chats).where(eq(chats.id, chatId)).get(),
 
     // Deletes the chat for good, and its OpenCode session, which also stops it. The chat goes even when OpenCode
     // cannot remove the session (not running, or the session is already gone). False when there is no such chat.

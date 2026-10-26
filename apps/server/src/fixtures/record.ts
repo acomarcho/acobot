@@ -170,7 +170,12 @@ const oc = await startOpencode(BIN, WORK);
 const wanted = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(SCENARIOS);
 // The models this login can use and OpenCode's default, kept to the fields acobot reads.
 const KEEP = ['id', 'modelID', 'providerID', 'name', 'cost', 'enabled', 'status'] as const;
-const trim = (m: Record<string, unknown> | null) => m && Object.fromEntries(KEEP.map((k) => [k, m[k]]));
+// Only the ids of a model's reasoning levels are read; their settings are OpenCode's business.
+const trim = (m: Record<string, unknown> | null) =>
+  m && {
+    ...Object.fromEntries(KEEP.map((k) => [k, m[k]])),
+    variants: (m.variants as { id: string }[])?.map((v) => ({ id: v.id })),
+  };
 try {
   const [list, fallback] = await Promise.all([oc.client.model.list({}), oc.client.model.default({})]);
   const models = { list: list.data.map(trim), default: trim(fallback.data) };
