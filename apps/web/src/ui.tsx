@@ -1157,6 +1157,20 @@ export function useStickToBottom(dep: unknown, key?: string | null) {
   useEffect(() => {
     near.current = true;
   }, [key]);
+  // The content can also grow without `dep` changing: the context bar appearing once the model list arrives, an
+  // image finishing loading. Stay at the bottom then too, unless the reader has scrolled up.
+  useEffect(() => {
+    const el = ref.current;
+    const content = el?.firstElementChild;
+    if (!el || !content) return;
+    const observer = new ResizeObserver(() => {
+      if (!near.current) return;
+      el.scrollTop = el.scrollHeight;
+      lastTop.current = el.scrollTop;
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [key]);
   const onScroll = () => {
     const el = ref.current!;
     near.current = follows(

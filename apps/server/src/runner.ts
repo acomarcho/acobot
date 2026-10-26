@@ -140,7 +140,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       }
       if (out.type === 'status') setStatus(chatId, out.status);
       // Not `touch`: a call ending is not news for the chat list's order.
-      if (out.type === 'usage') setChat(chatId, { contextUsed: out.used }, false);
+      if (out.type === 'context') setChat(chatId, { contextUsed: out.used }, false);
     }
   }
 

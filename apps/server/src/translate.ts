@@ -11,8 +11,9 @@ export type Out =
   | { type: 'item'; item: Item; save: boolean }
   | { type: 'delta'; itemId: string; text: string }
   | { type: 'status'; status: Status }
-  // How many tokens the model's latest call took.
-  | { type: 'usage'; used: number };
+  // How full the chat's context is after its latest call. Null when a summary replaced the chat and the new size
+  // is not known until the next call says.
+  | { type: 'context'; used: number | null };
 
 // Items are shown in `at` order, so no two may share a time. This clock never repeats and never goes back.
 let last = 0;
@@ -119,9 +120,13 @@ export function createTranslator(known: Item[] = []) {
         return [save({ ...item, text: d.text })];
       }
 
-      // Also when OpenCode does it by itself because the chat got too long.
+      // Also when OpenCode does it by itself because the chat got too long. How big the chat is after a summary is
+      // not known until the next call says, so the bar hides until then.
       case 'session.compaction.ended':
-        return [save({ id: `notice:${nextAt()}`, at: nextAt(), kind: 'notice', text: 'Summed up the chat so far' })];
+        return [
+          save({ id: `notice:${nextAt()}`, at: nextAt(), kind: 'notice', text: 'Summed up the chat so far' }),
+          { type: 'context', used: null },
+        ];
       case 'session.compaction.failed':
         return [
           save({
@@ -134,14 +139,12 @@ export function createTranslator(known: Item[] = []) {
 
       // What one call took, the way a context window counts it: what it read, fresh or cached, plus what it wrote.
       // These are the call's own tokens; `session.usage.updated` is the whole session added up, which is not this.
-      case 'session.step.ended': {
+      // A call that was stopped or failed may still have read the chat, so it counts too. One that never got as far
+      // as reporting has no counts.
+      case 'session.step.ended':
+      case 'session.step.failed': {
         const t = d.tokens;
-        return [
-          {
-            type: 'usage',
-            used: t.input + t.output + t.reasoning + t.cache.read + t.cache.write,
-          },
-        ];
+        return t ? [{ type: 'context', used: t.input + t.output + t.reasoning + t.cache.read + t.cache.write }] : [];
       }
 
       case 'session.tool.input.started':

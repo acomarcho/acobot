@@ -377,6 +377,8 @@ test('Stop interrupts the session and the chat says it stopped', async () => {
   expect(fake.calls.interrupt[0]).toEqual({ sessionID: fake.sessionId() });
   await until(() => b.chats.get(chat.id)?.status === 'idle');
   expect(kinds(b.items).at(-1)).toBe('notice');
+  // The stopped call had read the chat before it was cut, so the bar knows that much.
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(14972);
 });
 
 test('deleting a chat removes it for good: from every browser, the database and OpenCode', async () => {
@@ -498,6 +500,9 @@ test('a subagent asking for approval shows a card in its chat, and the answer go
   const askedBy: string[] = [];
   for (let answered = 0; answered < 3; answered++) {
     await until(() => pending() && b.chats.get(chat.id)?.status === 'needs');
+    // The card asks are the subagent's until the last one. Its first call has finished by the second ask, while the
+    // chat's own session has not finished one yet, so the subagent's usage must not have filled the bar.
+    if (answered === 1) expect(b.chats.get(chat.id)?.contextUsed).toBe(null);
     const card = pending()!;
     askedBy.push(card.ask!.sessionId);
     await post(`/api/chats/${chat.id}/asks/${card.ask!.requestId}`, { decision: 'once' });
@@ -803,8 +808,11 @@ test('/compact on its own sums up the chat instead of sending a message', async 
   const { body: chat } = await post('/api/chats', { text: first, files: [], access: 'full', model: MODEL });
   await b.open(chat.id);
   await until(() => b.chats.get(chat.id)?.status === 'idle');
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(14877);
   expect((await post(`/api/chats/${chat.id}/messages`, { text: '/compact', files: [] })).status).toBe(200);
   await until(() => kinds(b.items).includes('notice') && b.chats.get(chat.id)?.status === 'idle');
+  // The summary replaced what the window held, so the old number means nothing until the next call says.
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(null);
   expect(fake.calls.compact).toEqual([{ sessionID: fake.sessionId() }]);
   expect(fake.calls.prompt).toHaveLength(1);
   expect(kinds(b.items)).toEqual(['message', 'message', 'message', 'notice']);
