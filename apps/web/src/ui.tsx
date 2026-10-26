@@ -598,7 +598,7 @@ function ContextBar({ chat }: { chat: Chat }) {
     <div
       role="progressbar"
       aria-label="Context window used"
-      aria-valuenow={used}
+      aria-valuenow={Math.min(used, max)}
       aria-valuemax={max}
       title={`Context window used: ${tokens(used)} of ${tokens(max)} tokens`}
       className="flex w-fit items-center gap-2 px-1 text-[11px] text-muted-foreground tabular-nums"
