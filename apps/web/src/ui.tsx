@@ -1,5 +1,6 @@
 import {
   ACCESS,
+  reasoningName,
   type Access,
   type Bot,
   type Chat,
@@ -13,6 +14,7 @@ import { code } from '@streamdown/code';
 import {
   ArrowUp,
   Bot as BotIcon,
+  Brain,
   Check,
   ChevronDown,
   ChevronRight,
@@ -680,6 +682,42 @@ function BotPill({ bots, value, onChange }: { bots: Bot[]; value: string; onChan
 
 const nameOf = (models: Model[], id: string) => models.find((m) => m.id === id)?.name ?? (id.split('/')[1] || 'Model');
 
+// The list a picker opens: a sheet from the bottom on phones; on bigger screens a panel above the button (`up`) or
+// below it. A tap on the dark area closes it.
+function Popup({
+  open,
+  onClose,
+  up,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  up?: boolean;
+  children: ReactNode;
+}) {
+  // Escape closes the list, also when nothing in it has the focus. In a dialog it closes that too, since the browser
+  // handles the key as well.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <>
+      <div onClick={onClose} className="fixed inset-0 z-30 bg-black/40 md:bg-transparent" />
+      <div
+        className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[75dvh] flex-col rounded-t-2xl border border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-xl md:absolute md:inset-x-auto md:left-0 md:max-h-96 md:w-full md:min-w-80 md:rounded-xl md:pb-0 ${up ? 'md:top-auto md:bottom-full md:mb-2' : 'md:top-full md:bottom-auto md:mt-2'}`}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
+
 // A button showing the model; it opens a searchable list. On phones the list slides up from the bottom; on bigger
 // screens it opens above the button (`up`) or below it.
 export function ModelPicker({
@@ -740,57 +778,105 @@ export function ModelPicker({
         <span className="truncate">{nameOf(models, value)}</span>
         <ChevronDown className="size-3.5 shrink-0" />
       </button>
-      {open && (
-        <>
-          <div onClick={close} className="fixed inset-0 z-30 bg-black/40 md:bg-transparent" />
-          <div
-            className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[75dvh] flex-col rounded-t-2xl border border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-xl md:absolute md:inset-x-auto md:left-0 md:max-h-96 md:w-full md:min-w-80 md:rounded-xl md:pb-0 ${up ? 'md:top-auto md:bottom-full md:mb-2' : 'md:top-full md:bottom-auto md:mt-2'}`}
-          >
-            <div className="p-2">
-              <label className="flex items-center gap-2 rounded-lg bg-muted px-2.5 py-2 text-muted-foreground md:py-1.5">
-                <Search className="size-4 shrink-0" />
-                <input
-                  value={q}
-                  // Phones would pop the keyboard over the list.
-                  autoFocus={!matchMedia('(pointer: coarse)').matches}
-                  onChange={(e) => (setQ(e.target.value), setAt(0))}
-                  onKeyDown={(e) => {
-                    if (!keys[e.key]) return;
-                    e.preventDefault();
-                    keys[e.key]();
-                  }}
-                  placeholder="Search models"
-                  className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
-                />
-              </label>
-            </div>
-            <div ref={list} role="listbox" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">
-              {found.map((m, i) => (
-                <div key={m.id}>
-                  {m.group !== found[i - 1]?.group && (
-                    <p className="px-2.5 pt-2 pb-1 text-xs text-muted-foreground">{m.group}</p>
-                  )}
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={m.id === value}
-                    data-at={i === at}
-                    onClick={() => pick(m)}
-                    onMouseMove={() => setAt(i)}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-sm md:py-1.5 ${i === at ? 'bg-muted' : ''}`}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{m.name}</span>
-                    {m.id === value && <Check className="size-4 shrink-0" />}
-                  </button>
-                </div>
-              ))}
-              {!found.length && (
-                <p className="px-2.5 py-6 text-center text-sm text-muted-foreground">No models found</p>
+      <Popup open={open} onClose={close} up={up}>
+        <div className="p-2">
+          <label className="flex items-center gap-2 rounded-lg bg-muted px-2.5 py-2 text-muted-foreground md:py-1.5">
+            <Search className="size-4 shrink-0" />
+            <input
+              value={q}
+              // Phones would pop the keyboard over the list.
+              autoFocus={!matchMedia('(pointer: coarse)').matches}
+              onChange={(e) => (setQ(e.target.value), setAt(0))}
+              onKeyDown={(e) => {
+                if (!keys[e.key]) return;
+                e.preventDefault();
+                keys[e.key]();
+              }}
+              placeholder="Search models"
+              className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground md:text-sm"
+            />
+          </label>
+        </div>
+        <div ref={list} role="listbox" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 scroll-thin">
+          {found.map((m, i) => (
+            <div key={m.id}>
+              {m.group !== found[i - 1]?.group && (
+                <p className="px-2.5 pt-2 pb-1 text-xs text-muted-foreground">{m.group}</p>
               )}
+              <button
+                type="button"
+                role="option"
+                aria-selected={m.id === value}
+                data-at={i === at}
+                onClick={() => pick(m)}
+                onMouseMove={() => setAt(i)}
+                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-sm md:py-1.5 ${i === at ? 'bg-muted' : ''}`}
+              >
+                <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                {m.id === value && <Check className="size-4 shrink-0" />}
+              </button>
             </div>
-          </div>
-        </>
-      )}
+          ))}
+          {!found.length && <p className="px-2.5 py-6 text-center text-sm text-muted-foreground">No models found</p>}
+        </div>
+      </Popup>
+    </div>
+  );
+}
+
+// How hard the chosen model thinks, as one of its own levels (they differ per model), or its own default. Nothing is
+// shown for a model without levels, so there is no empty control to explain.
+export function ReasoningPicker({
+  levels,
+  value,
+  onChange,
+  up,
+  className,
+}: {
+  levels: string[];
+  value: string;
+  onChange: (level: string) => void;
+  up?: boolean;
+  className: string;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!levels.length) return null;
+  const close = () => setOpen(false);
+  const pick = (level: string) => {
+    close();
+    if (level !== value) onChange(level);
+  };
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label="Reasoning level"
+        className={className}
+      >
+        <Brain className="size-3.5 shrink-0" />
+        <span className="truncate">{reasoningName(value)}</span>
+        <ChevronDown className="size-3.5 shrink-0" />
+      </button>
+      <Popup open={open} onClose={close} up={up}>
+        <p className="px-4 pt-3 pb-1 text-xs text-muted-foreground md:px-4 md:pt-2">Reasoning level</p>
+        <div role="listbox" aria-label="Reasoning level" className="min-h-0 flex-1 overflow-y-auto p-2 scroll-thin">
+          {['', ...levels].map((level) => (
+            <button
+              key={level || 'default'}
+              type="button"
+              role="option"
+              aria-selected={level === value}
+              onClick={() => pick(level)}
+              className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-sm hover:bg-muted md:py-1.5 ${level === value ? 'bg-muted' : ''}`}
+            >
+              <span className="min-w-0 flex-1">{reasoningName(level)}</span>
+              {level === value && <Check className="size-4 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      </Popup>
     </div>
   );
 }
@@ -800,7 +886,7 @@ type Upload = { key: string; name: string; ref?: FileRef };
 // Grok Bot-style box: attach on the left, access mode, send or stop on the right.
 // Without a chat it starts one; `onCreated` then gets the new chat's id.
 export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: string) => void }) {
-  const { createChat, sendMessage, setAccess, setModel, stop } = useApp();
+  const { createChat, sendMessage, setAccess, setModel, setReasoning, stop } = useApp();
   const { models } = useModels();
   const [text, setText] = useState('');
   const [uploads, setUploads] = useState<Upload[]>([]);
@@ -811,6 +897,10 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   // The model a new chat will start with, once picked. Until then, the server's default.
   const [picked, setPicked] = useState<string>();
   const model = chat?.model ?? picked ?? models?.default ?? '';
+  // The reasoning level for it: one of the model's, or '' for the model's own default.
+  const [pickedReasoning, setPickedReasoning] = useState('');
+  const reasoning = chat?.reasoning ?? pickedReasoning;
+  const levels = models?.models.find((m) => m.id === model)?.levels ?? [];
   // The bot a new chat will talk to, once picked. Until then the first one, which is acobot.
   const { bots } = useBots();
   const [pickedBot, setPickedBot] = useState<string>();
@@ -868,7 +958,19 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
     setSending(true);
     try {
       if (chat) await sendMessage(chat.id, body);
-      else onCreated?.((await createChat({ ...body, access, model: picked, botId: pickedBot })).id);
+      else
+        onCreated?.(
+          (
+            await createChat({
+              ...body,
+              access,
+              botId: pickedBot,
+              // Name the model once one (or a level) is picked; until then the chat starts on the server's default,
+              // even when the list could not be loaded.
+              ...(picked || pickedReasoning ? { model, reasoning: pickedReasoning } : {}),
+            })
+          ).id,
+        );
       setText('');
       setUploads([]);
     } catch (err) {
@@ -876,6 +978,17 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
     } finally {
       setSending(false);
     }
+  };
+
+  // The server refuses a level the model does not have, so a new model without it goes back to its own default.
+  const chooseModel = (id: string) => {
+    if (chat) return void setModel(chat.id, id).catch((err) => alert(err.message));
+    setPicked(id);
+    if (!(models?.models.find((m) => m.id === id)?.levels ?? []).includes(pickedReasoning)) setPickedReasoning('');
+  };
+  const chooseReasoning = (level: string) => {
+    if (chat) return void setReasoning(chat.id, level).catch((err) => alert(err.message));
+    setPickedReasoning(level);
   };
 
   return (
@@ -936,7 +1049,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
         }}
         className="block w-full resize-none bg-transparent px-2.5 py-1.5 text-base outline-none placeholder:text-muted-foreground"
       />
-      <div className="flex items-center gap-1">
+      <div className="flex items-end gap-1">
         <input
           ref={picker}
           type="file"
@@ -944,29 +1057,41 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
           hidden
           onChange={(e) => (attach(e.target.files), (e.target.value = ''))}
         />
-        <button
-          type="button"
-          aria-label="Attach files"
-          onClick={() => picker.current?.click()}
-          className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted"
-        >
-          <Paperclip className="size-4.5" />
-        </button>
-        {bots.length > 0 && <BotPill bots={bots} value={botId} onChange={chat ? undefined : setPickedBot} />}
-        <AccessPill
-          access={access}
-          onChange={(a) => (chat ? void setAccess(chat.id, a).catch((err) => alert(err.message)) : setNewAccess(a))}
-        />
-        {models && (
-          <ModelPicker
-            up
-            models={models.models}
-            value={model}
-            onChange={(id) => (chat ? void setModel(chat.id, id).catch((err) => alert(err.message)) : setPicked(id))}
-            className="flex max-w-full items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+        {/* The controls wrap on phones, where four pills do not fit on one line. The send button stays at the end. */}
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+          <button
+            type="button"
+            aria-label="Attach files"
+            onClick={() => picker.current?.click()}
+            className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted"
+          >
+            <Paperclip className="size-4.5" />
+          </button>
+          {bots.length > 0 && <BotPill bots={bots} value={botId} onChange={chat ? undefined : setPickedBot} />}
+          <AccessPill
+            access={access}
+            onChange={(a) => (chat ? void setAccess(chat.id, a).catch((err) => alert(err.message)) : setNewAccess(a))}
           />
-        )}
-        <span className="flex-1" />
+          {/* The model and its level stay together on one line, which is their own line on phones. */}
+          {models && (
+            <div className="flex min-w-0 items-center gap-1 max-md:basis-full">
+              <ModelPicker
+                up
+                models={models.models}
+                value={model}
+                onChange={chooseModel}
+                className="flex max-w-full items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+              />
+              <ReasoningPicker
+                up
+                levels={levels}
+                value={reasoning}
+                onChange={chooseReasoning}
+                className="flex max-w-full items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+              />
+            </div>
+          )}
+        </div>
         {busy && !ready ? (
           <button
             type="button"

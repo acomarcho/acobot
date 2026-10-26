@@ -29,8 +29,10 @@ import MODELS from './fixtures/models.json' with { type: 'json' };
 import SKILLS from './fixtures/skills.json' with { type: 'json' };
 
 const WORK = join(process.env.HOME!, 'acobot-work', 'test');
-// OpenCode's default in the recorded model list.
+// A model the recorded list has, with reasoning levels. OpenCode's recorded default is separate: it changes with the
+// account, so tests that need it take it from the recording.
 const MODEL = 'opencode-go/kimi-k3.1-pro';
+const DEFAULT_MODEL = `${MODELS.default.providerID}/${MODELS.default.modelID}`;
 
 // The call that lets each part of a recording play: what we did right before it, mapped to the client call.
 const TRIGGER: Record<string, string> = {
@@ -513,18 +515,24 @@ test('the model list has the OpenCode Go, Refuseless, Experiential Labs and free
     id: 'refuseless/glm-5.3-abliterated',
     name: 'glm-5.3-abliterated',
     group: 'Refuseless',
+    levels: ['low', 'medium', 'high'],
   });
   expect(models.find((m) => m.id === 'explabs/glm-5.3-uncensored')).toEqual({
     id: 'explabs/glm-5.3-uncensored',
     name: 'glm-5.3-uncensored',
     group: 'Experiential Labs',
+    levels: ['low', 'medium', 'high'],
   });
   expect(models.find((m) => m.id === 'opencode/big-pickle')).toEqual({
     id: 'opencode/big-pickle',
     name: 'Big Pickle',
     group: 'Free',
+    levels: [],
   });
-  expect(fallback).toBe(MODEL);
+  // Levels are the model's own, cheapest first, and not every model has them.
+  expect(models.find((m) => m.id === 'opencode-go/glm-5.3')?.levels).toEqual(['low', 'high', 'max']);
+  expect(models.find((m) => m.id === 'opencode-go/kimi-k3')?.levels).toEqual(['max']);
+  expect(fallback).toBe(DEFAULT_MODEL);
 });
 
 test('the default model is saved in settings, and only a model from the list can be picked', async () => {
@@ -542,7 +550,7 @@ test('the default model is saved in settings, and only a model from the list can
   expect(fake.calls.create[0].model).toEqual({ providerID: 'opencode', id: 'big-pickle' });
   // A saved default that is no longer offered falls back to OpenCode's own.
   setSetting(db, 'defaultModel', 'opencode/gone-free');
-  expect(((await (await fetch(base + '/api/models')).json()) as Models).default).toBe(MODEL);
+  expect(((await (await fetch(base + '/api/models')).json()) as Models).default).toBe(DEFAULT_MODEL);
 });
 
 test('the default access is saved in settings, and a chat without one starts on it', async () => {
@@ -554,7 +562,7 @@ test('the default access is saved in settings, and a chat without one starts on 
   const res = await post('/api/settings', { defaultAccess: 'full' });
   expect(res.body.defaultAccess).toBe('full');
   // Saving one default leaves the other alone.
-  expect(res.body.default).toBe(MODEL);
+  expect(res.body.default).toBe(DEFAULT_MODEL);
   expect((await models()).defaultAccess).toBe('full');
   expect((await post('/api/settings', { defaultAccess: 'root' })).status).toBe(400);
   const plain = await post('/api/chats', { text: 'hi', files: [], model: MODEL });
@@ -583,6 +591,87 @@ test('a new chat uses the model picked for it, and switching later tells OpenCod
   await until(() => [...b.items.values()].some((i) => i.kind === 'notice' && i.text === 'Switched to GLM-5.3'));
   expect((await post(`/api/chats/${chat.id}/model`, { model: 'openai/gpt-6-sol' })).status).toBe(400);
   expect((await post('/api/chats/nope/model', { model: 'opencode-go/glm-5.3' })).status).toBe(404);
+});
+
+test('a new chat starts on a reasoning level its model has, and only such a level can be picked', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  // The level goes to OpenCode, stays on the chat, and reaches browsers.
+  const { body: chat } = await post('/api/chats', {
+    text: 'hi',
+    files: [],
+    access: 'ask',
+    model: 'opencode-go/glm-5.3',
+    reasoning: 'high',
+  });
+  expect(chat.reasoning).toBe('high');
+  expect(fake.calls.create[0].model).toEqual({ providerID: 'opencode-go', id: 'glm-5.3', variant: 'high' });
+  await until(() => b.chats.get(chat.id)?.reasoning === 'high');
+  // Without one the model's own default is used.
+  const other = fakeOpencode('chat');
+  const { post: post2 } = await boot(other.oc);
+  const { body: plain } = await post2('/api/chats', { text: 'hi', files: [], access: 'ask', model: MODEL });
+  expect(plain.reasoning).toBe('');
+  expect(other.calls.create[0].model).toEqual({ providerID: 'opencode-go', id: 'kimi-k3.1-pro' });
+  // A level the model does not have, or any level for a model without them, is refused.
+  const bad = { text: 'hi', files: [], access: 'ask', model: 'opencode-go/glm-5.3', reasoning: 'medium' };
+  expect((await post('/api/chats', bad)).status).toBe(400);
+  expect((await post('/api/chats', { ...bad, model: 'opencode/big-pickle', reasoning: 'high' })).status).toBe(400);
+});
+
+test('a chat can switch its reasoning level, and the transcript says so', async () => {
+  const fake = fakeOpencode('chat');
+  const { base, post } = await boot(fake.oc);
+  const b = await browser(base);
+  const { body: chat } = await post('/api/chats', {
+    text: 'hi',
+    files: [],
+    access: 'ask',
+    model: 'opencode-go/glm-5.3',
+    reasoning: 'low',
+  });
+  await b.open(chat.id);
+  const res = await post(`/api/chats/${chat.id}/reasoning`, { reasoning: 'max' });
+  expect(res.body).toMatchObject({ model: 'opencode-go/glm-5.3', reasoning: 'max' });
+  expect(fake.calls.switchModel[0]).toEqual({
+    sessionID: fake.sessionId(),
+    model: { providerID: 'opencode-go', id: 'glm-5.3', variant: 'max' },
+  });
+  await until(() => b.chats.get(chat.id)?.reasoning === 'max');
+  await until(() => [...b.items.values()].some((i) => i.kind === 'notice' && i.text === 'Reasoning: Max'));
+  // Back to the model's own default: no variant is sent at all.
+  const cleared = await post(`/api/chats/${chat.id}/reasoning`, { reasoning: '' });
+  expect(cleared.body.reasoning).toBe('');
+  expect(fake.calls.switchModel[1]).toEqual({
+    sessionID: fake.sessionId(),
+    model: { providerID: 'opencode-go', id: 'glm-5.3' },
+  });
+  await until(() => [...b.items.values()].some((i) => i.kind === 'notice' && i.text === 'Reasoning: Default'));
+  // Only a level of the chat's own model is allowed.
+  expect((await post(`/api/chats/${chat.id}/reasoning`, { reasoning: 'medium' })).status).toBe(400);
+  expect((await post(`/api/chats/${chat.id}/reasoning`, { reasoning: 3 })).status).toBe(400);
+  expect((await post('/api/chats/nope/reasoning', { reasoning: 'high' })).status).toBe(404);
+});
+
+test('switching model keeps a reasoning level the new model has, and drops one it does not', async () => {
+  const fake = fakeOpencode('chat');
+  const { post } = await boot(fake.oc);
+  const { body: chat } = await post('/api/chats', {
+    text: 'hi',
+    files: [],
+    access: 'ask',
+    model: 'opencode-go/gemini-4-argon',
+    reasoning: 'medium',
+  });
+  // Flint 40B Free has medium too.
+  const kept = await post(`/api/chats/${chat.id}/model`, { model: 'opencode/flint-40b-free' });
+  expect(kept.body).toMatchObject({ model: 'opencode/flint-40b-free', reasoning: 'medium' });
+  expect(fake.calls.switchModel[0].model).toEqual({ providerID: 'opencode', id: 'flint-40b-free', variant: 'medium' });
+  // Kimi K3 has only max, so the level goes back to the model's own default.
+  const dropped = await post(`/api/chats/${chat.id}/model`, { model: 'opencode-go/kimi-k3' });
+  expect(dropped.body).toMatchObject({ model: 'opencode-go/kimi-k3', reasoning: '' });
+  expect(fake.calls.switchModel[1].model).toEqual({ providerID: 'opencode-go', id: 'kimi-k3' });
 });
 
 test('a new chat gets a title written by DeepSeek V4.1 Flash from its first message', async () => {
@@ -844,6 +933,7 @@ test('an automation needs a message, a time, a day, a bot, a model you can pick 
     { days: [] },
     { botId: 'nope' },
     { model: 'x/y' },
+    { reasoning: 'bogus' },
     { access: 'all' },
     { on: 1 },
   ];
@@ -894,6 +984,34 @@ test("Run now starts a fresh chat with the automation's message, bot, model and 
   // Nobody watched it run, so it waits as unread.
   expect(b.chats.get(chat.id)).toMatchObject({ automationId: auto.id, unread: true });
   expect((await post(`${AUTOMATIONS_PATH}/nope/run`, {})).status).toBe(404);
+});
+
+test('an automation keeps a reasoning level of its model, and runs its chats on it', async () => {
+  const fake = fakeOpencode('chat');
+  const { post } = await boot(fake.oc);
+  // Only a level of the model the automation runs on can be saved, and a model without levels takes none.
+  for (const change of [{ reasoning: 'bogus' }, { reasoning: 'high', model: 'opencode/big-pickle' }])
+    expect((await post(AUTOMATIONS_PATH, { ...AUTOMATION, ...change })).status).toBe(400);
+  const { body: auto } = await post(AUTOMATIONS_PATH, { ...AUTOMATION, reasoning: 'high' });
+  expect(auto.reasoning).toBe('high');
+  const { body: chat } = await post(`${AUTOMATIONS_PATH}/${auto.id}/run`, {});
+  expect(chat.reasoning).toBe('high');
+  expect(fake.calls.create[0].model).toEqual({ providerID: 'opencode-go', id: 'kimi-k3.1-pro', variant: 'high' });
+});
+
+test('an automation can be renamed or paused while OpenCode is down, as long as its model and level stay the same', async () => {
+  const fake = fakeOpencode('chat');
+  const { post, server } = await boot(fake.oc);
+  const { body: auto } = await post(AUTOMATIONS_PATH, { ...AUTOMATION, reasoning: 'high' });
+  server.runner.detach();
+  const paused = await post(`${AUTOMATIONS_PATH}/${auto.id}`, { ...auto, name: 'Paused digest', on: false });
+  expect(paused.status).toBe(200);
+  expect(paused.body).toMatchObject({ name: 'Paused digest', on: false, reasoning: 'high', nextAt: null });
+  // A changed level is checked against the model, which needs OpenCode.
+  expect(
+    (await post(`${AUTOMATIONS_PATH}/${auto.id}`, { ...auto, name: 'Paused digest', reasoning: 'low', on: false }))
+      .status,
+  ).toBe(502);
 });
 
 test('the scheduler runs an automation once its time comes, once, then moves on to its next time; never a paused one', async () => {

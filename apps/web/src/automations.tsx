@@ -5,7 +5,7 @@ import { Pencil, Play, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { clock } from './days';
 import { useApp, useBots, useModels } from './store';
-import { ModelPicker, Preview, Toggle } from './ui';
+import { ModelPicker, Preview, ReasoningPicker, Toggle } from './ui';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const WEEKDAYS = [0, 1, 2, 3, 4];
@@ -81,6 +81,7 @@ function AutomationDialog({ automation, onClose }: { automation?: Automation; on
         text: '',
         botId: '',
         model: '',
+        reasoning: '',
         access: 'full',
         time: '09:00',
         days: WEEKDAYS,
@@ -90,6 +91,7 @@ function AutomationDialog({ automation, onClose }: { automation?: Automation; on
   const [saving, setSaving] = useState(false);
   // The first bot and the default model, until others are picked.
   const value = { ...draft, botId: draft.botId || bots[0]?.id || '', model: draft.model || models?.default || '' };
+  const levels = models?.models.find((m) => m.id === value.model)?.levels ?? [];
   const set = (change: Partial<NewAutomation>) => setDraft((d) => ({ ...d, ...change }));
   const ready = value.text.trim() && value.days.length && value.time && value.botId && value.model && !saving;
   useEffect(() => ref.current?.showModal(), []);
@@ -174,7 +176,26 @@ function AutomationDialog({ automation, onClose }: { automation?: Automation; on
             <ModelPicker
               models={models.models}
               value={value.model}
-              onChange={(model) => set({ model })}
+              onChange={(model) =>
+                set({
+                  model,
+                  // A level the new model does not have goes back to its own default.
+                  reasoning: (models.models.find((m) => m.id === model)?.levels ?? []).includes(value.reasoning)
+                    ? value.reasoning
+                    : '',
+                })
+              }
+              className={`${field} flex items-center gap-2 text-left [&>span]:flex-1`}
+            />
+          </div>
+        )}
+        {models && levels.length > 0 && (
+          <div>
+            <span className={label}>Reasoning</span>
+            <ReasoningPicker
+              levels={levels}
+              value={value.reasoning}
+              onChange={(reasoning) => set({ reasoning })}
               className={`${field} flex items-center gap-2 text-left [&>span]:flex-1`}
             />
           </div>

@@ -65,6 +65,7 @@ export const chatCols = {
   preview: chats.preview,
   access: chats.access,
   model: chats.model,
+  reasoning: chats.reasoning,
   status: chats.status,
   statusAt: chats.statusAt,
   unread: chats.unread,

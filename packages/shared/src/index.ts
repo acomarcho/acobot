@@ -22,6 +22,9 @@ export type Chat = {
   access: Access;
   // `provider/model`, like `opencode-go/kimi-k3.1-pro`. Empty for chats made before models could be picked.
   model: string;
+  // How hard the model thinks before it answers: one of its reasoning levels, like `high`. Empty for the model's own
+  // default (OpenCode calls it `default`).
+  reasoning: string;
   status: Status;
   // When `status` last changed.
   statusAt: number;
@@ -78,8 +81,8 @@ export const DECISIONS: Decision[] = ['once', 'always', 'reject'];
 
 // What the browser sends to start a chat or add to one. `files` are ids from an earlier upload.
 export type NewMessage = { text: string; files: string[] };
-// Without `access`, `model` or `botId` the chat starts on the default one.
-export type NewChat = NewMessage & { access?: Access; model?: string; botId?: string };
+// Without `access`, `model`, `reasoning` or `botId` the chat starts on the default one.
+export type NewChat = NewMessage & { access?: Access; model?: string; reasoning?: string; botId?: string };
 
 // A bot: a name and a prompt (its character) that starts every chat it is in. `memory` is the file it keeps notes
 // in for later chats; what is in it when a chat starts goes along too.
@@ -89,10 +92,24 @@ export type Bot = NewBot & { id: string; memory: string };
 // Picked by typing `/name` in a message: one of acobot's commands, or a skill OpenCode can load.
 export type Command = { name: string; description: string; skill: boolean };
 
-// A model chats can use. `id` is `provider/model`.
-export type Model = { id: string; name: string; group: string };
+// A model chats can use. `id` is `provider/model`. `levels` are the ways it can think, cheapest first; some models
+// have none, and are left on their own default.
+export type Model = { id: string; name: string; group: string; levels: string[] };
 // The models to pick from, and the model and access new chats start on.
 export type Models = { models: Model[]; default: string; defaultAccess: Access };
+
+// The words for a reasoning level (`xhigh` is "Extra high"), and the model's own default for ''.
+const LEVEL_NAMES: Record<string, string> = {
+  none: 'None',
+  minimal: 'Minimal',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  xhigh: 'Extra high',
+  max: 'Max',
+  thinking: 'Thinking',
+};
+export const reasoningName = (id: string) => LEVEL_NAMES[id] ?? (id ? id[0].toUpperCase() + id.slice(1) : 'Default');
 
 export type Settings = { defaultModel: string; defaultAccess: Access };
 
@@ -107,6 +124,8 @@ export type NewAutomation = Schedule & {
   text: string;
   botId: string;
   model: string;
+  // The model's reasoning level, or '' for its own default.
+  reasoning: string;
   access: Access;
   on: boolean;
 };

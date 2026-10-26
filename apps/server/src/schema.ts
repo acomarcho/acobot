@@ -19,6 +19,8 @@ export const automations = sqliteTable('automations', {
     .notNull()
     .references(() => bots.id),
   model: text('model').notNull(),
+  // The model's reasoning level, or '' for its own default.
+  reasoning: text('reasoning').notNull().default(''),
   access: text('access').$type<Access>().notNull(),
   // 'HH:MM' on the server's clock, and the days of the week it runs on (0 is Monday).
   time: text('time').notNull(),
@@ -41,6 +43,8 @@ export const chats = sqliteTable('chats', {
   preview: text('preview').notNull().default(''),
   access: text('access').$type<Access>().notNull(),
   model: text('model').notNull().default(''),
+  // The model's reasoning level, or '' for its own default.
+  reasoning: text('reasoning').notNull().default(''),
   status: text('status').$type<Status>().notNull(),
   // When the status last changed, so the list can show how long a chat has been working or waiting.
   statusAt: integer('status_at').notNull().default(0),
