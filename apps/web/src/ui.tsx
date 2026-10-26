@@ -45,6 +45,7 @@ import { byDay, clock, dayLabel, dayOf, elapsed } from './days';
 import { useApp, useBots, useModels } from './store';
 import { follows } from './scroll';
 import { fileUrl, isImage, uploadFile } from './upload';
+import { tokens } from './usage';
 
 const plugins = { code };
 
@@ -581,6 +582,31 @@ export function Messages({ chat, items }: { chat: Chat; items: Item[] }) {
           ))}
         </div>
       )}
+      <ContextBar chat={chat} />
+    </div>
+  );
+}
+
+// How full the model's context window was after its latest call, as a small bar and "15K / 1M". It sits in the
+// message flow, so it scrolls with the chat and can never cover the box below.
+function ContextBar({ chat }: { chat: Chat }) {
+  const { models } = useModels();
+  const used = chat.contextUsed;
+  const max = models?.models.find((m) => m.id === chat.model)?.context ?? 0;
+  if (used === null || !max) return null;
+  return (
+    <div
+      role="progressbar"
+      aria-label="Context window used"
+      aria-valuenow={Math.min(used, max)}
+      aria-valuemax={max}
+      title={`Context window used: ${tokens(used)} of ${tokens(max)} tokens`}
+      className="flex w-fit items-center gap-2 px-1 text-[11px] text-muted-foreground tabular-nums"
+    >
+      <span className="h-1 w-16 overflow-hidden rounded-full bg-muted">
+        <span className="block h-full bg-primary" style={{ width: `${Math.min(100, (used / max) * 100)}%` }} />
+      </span>
+      {tokens(used)} / {tokens(max)}
     </div>
   );
 }
@@ -1130,6 +1156,20 @@ export function useStickToBottom(dep: unknown, key?: string | null) {
   }, [dep]);
   useEffect(() => {
     near.current = true;
+  }, [key]);
+  // The content can also grow without `dep` changing: the context bar appearing once the model list arrives, an
+  // image finishing loading. Stay at the bottom then too, unless the reader has scrolled up.
+  useEffect(() => {
+    const el = ref.current;
+    const content = el?.firstElementChild;
+    if (!el || !content) return;
+    const observer = new ResizeObserver(() => {
+      if (!near.current) return;
+      el.scrollTop = el.scrollHeight;
+      lastTop.current = el.scrollTop;
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
   }, [key]);
   const onScroll = () => {
     const el = ref.current!;

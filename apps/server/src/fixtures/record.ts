@@ -169,7 +169,7 @@ mkdirSync(WORK, { recursive: true });
 const oc = await startOpencode(BIN, WORK);
 const wanted = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(SCENARIOS);
 // The models this login can use and OpenCode's default, kept to the fields acobot reads.
-const KEEP = ['id', 'modelID', 'providerID', 'name', 'cost', 'enabled', 'status'] as const;
+const KEEP = ['id', 'modelID', 'providerID', 'name', 'cost', 'enabled', 'status', 'limit'] as const;
 // Only the ids of a model's reasoning levels are read; their settings are OpenCode's business.
 const trim = (m: Record<string, unknown> | null) =>
   m && {

@@ -216,6 +216,21 @@ test('a new chat starts a session with the bot prompt and streams the answer to 
   expect(b.chats.get(chat.id)?.unread).toBe(false);
 });
 
+test('after each call the chat says how full its context window is, and the number stays for a browser that comes later', async () => {
+  const { base, post } = await boot(fakeOpencode('chat').oc);
+  const b = await browser(base);
+  const { body: chat } = await post('/api/chats', { text: 'say hi', files: [], access: 'ask', model: MODEL });
+  // Nothing has been answered in this chat yet.
+  expect(chat.contextUsed).toBe(null);
+  await b.open(chat.id);
+  await until(() => b.chats.get(chat.id)?.status === 'idle');
+  // What the recorded call read (input 12182 + cache.read 2688) plus what it wrote (output 8).
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(14878);
+  // A browser that opens later gets it with the chat list, from the stored chat and not from the stream.
+  const later = await browser(base);
+  expect(later.chats.get(chat.id)?.contextUsed).toBe(14878);
+});
+
 test('a chat nobody is looking at turns unread when it finishes, and opening it clears that', async () => {
   const { base, post } = await boot(fakeOpencode('tool-full').oc);
   const b = await browser(base);
@@ -362,6 +377,8 @@ test('Stop interrupts the session and the chat says it stopped', async () => {
   expect(fake.calls.interrupt[0]).toEqual({ sessionID: fake.sessionId() });
   await until(() => b.chats.get(chat.id)?.status === 'idle');
   expect(kinds(b.items).at(-1)).toBe('notice');
+  // The stopped call had read the chat before it was cut, so the bar knows that much.
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(14972);
 });
 
 test('deleting a chat removes it for good: from every browser, the database and OpenCode', async () => {
@@ -483,6 +500,9 @@ test('a subagent asking for approval shows a card in its chat, and the answer go
   const askedBy: string[] = [];
   for (let answered = 0; answered < 3; answered++) {
     await until(() => pending() && b.chats.get(chat.id)?.status === 'needs');
+    // The card asks are the subagent's until the last one. Its first call has finished by the second ask, while the
+    // chat's own session has not finished one yet, so the subagent's usage must not have filled the bar.
+    if (answered === 1) expect(b.chats.get(chat.id)?.contextUsed).toBe(null);
     const card = pending()!;
     askedBy.push(card.ask!.sessionId);
     await post(`/api/chats/${chat.id}/asks/${card.ask!.requestId}`, { decision: 'once' });
@@ -494,6 +514,8 @@ test('a subagent asking for approval shows a card in its chat, and the answer go
   expect(askedBy[0]).not.toBe(fake.sessionId());
   expect(askedBy[2]).toBe(fake.sessionId());
   await until(() => b.chats.get(chat.id)?.status === 'idle');
+  // The subagent ran calls of its own, but the bar follows the chat's own session: its last call took 15256.
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(15256);
   // The commands ran, the subagent's too, and only the ones that asked are in the chat.
   const cards = [...b.items.values()].filter((i) => i.kind === 'tool' && i.ask) as Extract<Item, { kind: 'tool' }>[];
   expect(cards.map((c) => c.state)).toEqual(['done', 'done', 'done']);
@@ -516,22 +538,28 @@ test('the model list has the OpenCode Go, Refuseless, Experiential Labs and free
     name: 'glm-5.3-abliterated',
     group: 'Refuseless',
     levels: ['low', 'medium', 'high'],
+    context: 1_048_576,
   });
   expect(models.find((m) => m.id === 'explabs/glm-5.3-uncensored')).toEqual({
     id: 'explabs/glm-5.3-uncensored',
     name: 'glm-5.3-uncensored',
     group: 'Experiential Labs',
     levels: ['low', 'medium', 'high'],
+    context: 1_048_576,
   });
   expect(models.find((m) => m.id === 'opencode/big-pickle')).toEqual({
     id: 'opencode/big-pickle',
     name: 'Big Pickle',
     group: 'Free',
     levels: [],
+    context: 200_000,
   });
   // Levels are the model's own, cheapest first, and not every model has them.
   expect(models.find((m) => m.id === 'opencode-go/glm-5.3')?.levels).toEqual(['low', 'high', 'max']);
   expect(models.find((m) => m.id === 'opencode-go/kimi-k3')?.levels).toEqual(['max']);
+  // The bar under the last message needs how much each model keeps in view, which every model of the catalog has.
+  expect(models.every((m) => m.context > 0)).toBe(true);
+  expect(models.find((m) => m.id === MODEL)?.context).toBe(1_048_576);
   expect(fallback).toBe(DEFAULT_MODEL);
 });
 
@@ -780,8 +808,11 @@ test('/compact on its own sums up the chat instead of sending a message', async 
   const { body: chat } = await post('/api/chats', { text: first, files: [], access: 'full', model: MODEL });
   await b.open(chat.id);
   await until(() => b.chats.get(chat.id)?.status === 'idle');
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(14877);
   expect((await post(`/api/chats/${chat.id}/messages`, { text: '/compact', files: [] })).status).toBe(200);
   await until(() => kinds(b.items).includes('notice') && b.chats.get(chat.id)?.status === 'idle');
+  // The summary replaced what the window held, so the old number means nothing until the next call says.
+  expect(b.chats.get(chat.id)?.contextUsed).toBe(null);
   expect(fake.calls.compact).toEqual([{ sessionID: fake.sessionId() }]);
   expect(fake.calls.prompt).toHaveLength(1);
   expect(kinds(b.items)).toEqual(['message', 'message', 'message', 'notice']);

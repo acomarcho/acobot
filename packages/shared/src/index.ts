@@ -25,6 +25,9 @@ export type Chat = {
   // How hard the model thinks before it answers: one of its reasoning levels, like `high`. Empty for the model's own
   // default (OpenCode calls it `default`).
   reasoning: string;
+  // How many tokens the model's latest call took: what it read plus what it wrote. Null until it answers once since
+  // this was added. The window it fills is the model's `context`.
+  contextUsed: number | null;
   status: Status;
   // When `status` last changed.
   statusAt: number;
@@ -93,8 +96,8 @@ export type Bot = NewBot & { id: string; memory: string };
 export type Command = { name: string; description: string; skill: boolean };
 
 // A model chats can use. `id` is `provider/model`. `levels` are the ways it can think, cheapest first; some models
-// have none, and are left on their own default.
-export type Model = { id: string; name: string; group: string; levels: string[] };
+// have none, and are left on their own default. `context` is how many tokens it keeps in view.
+export type Model = { id: string; name: string; group: string; levels: string[]; context: number };
 // The models to pick from, and the model and access new chats start on.
 export type Models = { models: Model[]; default: string; defaultAccess: Access };
 

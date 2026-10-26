@@ -30,6 +30,18 @@ test('a plain answer streams into one stored bubble', () => {
   expect(statuses).toEqual(['working', 'idle']);
 });
 
+test('every model call says how many tokens it took, so a bar can follow the latest one', () => {
+  const used = (name: string) => play(name).outs.flatMap((o) => (o.type === 'context' ? [o.used] : []));
+  // tool-full takes three calls: input + cache.read + output + reasoning of each.
+  expect(used('tool-full')).toEqual([14925, 15000, 15116]);
+  // The bar shows the latest call, not the turn added up.
+  expect(used('chat')).toEqual([14878]);
+  // A call stopped halfway still read the chat.
+  expect(used('interrupt')).toEqual([14972]);
+  // A summary replaces the chat, and the next call is what says how big it is now.
+  expect(used('compact')).toEqual([14877, null]);
+});
+
 test('shell commands become step cards with their command and output', () => {
   const { items } = play('tool-full');
   expect(kinds(items)).toEqual(['tool:shell:done', 'tool:shell:done', 'message']);
