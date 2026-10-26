@@ -32,16 +32,27 @@ import {
   ShieldCheck,
   Sparkles,
   Square,
+  SquarePen,
   Terminal,
   Trash2,
   Wrench,
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type WheelEvent } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type WheelEvent,
+} from 'react';
 import { Streamdown } from 'streamdown';
 import { CommandMenu, suggest, useCommands } from './commands';
 import { byDay, clock, dayLabel, dayOf, elapsed } from './days';
+import { clearSentDraft, type Draft, draftOf, dropDraft, editDraft, hasContent, useDraft } from './drafts';
 import { useApp, useBots, useModels } from './store';
 import { follows } from './scroll';
 import { fileUrl, isImage, uploadFile } from './upload';
@@ -158,6 +169,7 @@ export function Row({
   onClick: () => void;
   onDelete: () => void;
 }) {
+  const unsent = hasContent(useDraft(chat.id));
   return (
     <div className="group relative flex snap-x snap-mandatory overflow-x-hidden overscroll-x-contain rounded-xl [scrollbar-width:none] pointer-coarse:overflow-x-auto">
       <button
@@ -179,6 +191,12 @@ export function Row({
               <Clock
                 aria-label="Started by an automation"
                 className="size-3.5 shrink-0 self-center text-muted-foreground"
+              />
+            )}
+            {unsent && (
+              <FilePen
+                aria-label="You have a message here that is not sent yet"
+                className="size-3.5 shrink-0 self-center text-warn"
               />
             )}
             <span className={`min-w-0 flex-1 truncate ${chat.unread ? 'font-semibold' : 'font-medium'}`}>
@@ -214,6 +232,47 @@ export function Row({
   );
 }
 
+// A chat someone began and has not sent yet. Opening it brings back what was typed; its button throws it away.
+export function DraftRow({
+  draft,
+  active,
+  onClick,
+  onDiscard,
+}: {
+  draft: Draft;
+  active: boolean;
+  onClick: () => void;
+  onDiscard: () => void;
+}) {
+  const title = draft.text.trim().split('\n')[0] || 'New chat';
+  const attached = draft.uploads.length;
+  return (
+    <div
+      className={`group relative flex items-center rounded-xl ${active ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent/60'}`}
+    >
+      <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 px-2.5 py-2 pr-10 text-left">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-warn">
+          <SquarePen className="size-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{title}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            Not sent yet{attached > 0 && ` · ${attached} attached`}
+          </span>
+        </span>
+      </button>
+      <button
+        onClick={onDiscard}
+        aria-label="Discard draft"
+        title="Discard draft"
+        className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-sidebar-accent hover:text-foreground focus-visible:opacity-100 pointer-coarse:opacity-100"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
+  );
+}
+
 // Asks before a chat is deleted for good. Cancel, Esc or a tap outside closes it.
 export function DeleteDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
   const { deleteChat } = useApp();
@@ -221,7 +280,12 @@ export function DeleteDialog({ chat, onClose }: { chat: Chat; onClose: () => voi
   const [error, setError] = useState('');
   useEffect(() => ref.current?.showModal(), []);
   const close = () => ref.current?.close();
-  const confirm = () => deleteChat(chat.id).then(close, (err: Error) => setError(err.message));
+  // A deleted chat takes its unsent reply with it.
+  const confirm = () =>
+    deleteChat(chat.id).then(
+      () => (dropDraft(chat.id), close()),
+      (err: Error) => setError(err.message),
+    );
   return (
     <dialog
       ref={ref}
@@ -907,31 +971,46 @@ export function ReasoningPicker({
   );
 }
 
-type Upload = { key: string; name: string; ref?: FileRef };
+// A message being sent belongs to the draft, not to this box: opening another chat replaces the box while the
+// request is still running, and the box that comes back must not send the same words again.
+const flying = new Set<string>();
+const flightListeners = new Set<() => void>();
+const subscribeFlight = (listener: () => void) => {
+  flightListeners.add(listener);
+  return () => flightListeners.delete(listener);
+};
+const tellFlight = () => flightListeners.forEach((listener) => listener());
+const useFlying = (draftId: string) => useSyncExternalStore(subscribeFlight, () => flying.has(draftId));
 
 // Grok Bot-style box: attach on the left, access mode, send or stop on the right.
-// Without a chat it starts one; `onCreated` then gets the new chat's id.
-export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: string) => void }) {
+// Without a chat it starts one; `onCreated` then gets the new chat's id. What is in the box is kept under `draftId`.
+export function Composer({
+  chat,
+  draftId,
+  onCreated,
+}: {
+  chat?: Chat;
+  draftId: string;
+  onCreated?: (id: string, fromDraft: string) => void;
+}) {
   const { createChat, sendMessage, setAccess, setModel, setReasoning, stop } = useApp();
   const { models } = useModels();
-  const [text, setText] = useState('');
-  const [uploads, setUploads] = useState<Upload[]>([]);
+  // What was typed here and has not been sent yet. It outlives this screen.
+  const draft = useDraft(draftId);
+  const { text, uploads } = draft;
+  const edit = (patch: Partial<Draft>) => editDraft(draftId, chat ? patch : { ...patch, newChat: true });
   // The access a new chat will start with, once picked. Until then, the server's default. What the pill shows is
   // what gets sent, even while the default is still loading.
-  const [pickedAccess, setNewAccess] = useState<Access>();
-  const access = chat?.access ?? pickedAccess ?? models?.defaultAccess ?? 'ask';
+  const access = chat?.access ?? draft.access ?? models?.defaultAccess ?? 'ask';
   // The model a new chat will start with, once picked. Until then, the server's default.
-  const [picked, setPicked] = useState<string>();
-  const model = chat?.model ?? picked ?? models?.default ?? '';
+  const model = chat?.model ?? draft.model ?? models?.default ?? '';
   // The reasoning level for it: one of the model's, or '' for the model's own default.
-  const [pickedReasoning, setPickedReasoning] = useState('');
-  const reasoning = chat?.reasoning ?? pickedReasoning;
+  const reasoning = chat?.reasoning ?? draft.reasoning ?? '';
   const levels = models?.models.find((m) => m.id === model)?.levels ?? [];
   // The bot a new chat will talk to, once picked. Until then the first one, which is acobot.
   const { bots } = useBots();
-  const [pickedBot, setPickedBot] = useState<string>();
-  const botId = chat?.botId ?? pickedBot ?? bots[0]?.id ?? '';
-  const [sending, setSending] = useState(false);
+  const botId = chat?.botId ?? draft.botId ?? bots[0]?.id ?? '';
+  const sending = useFlying(draftId);
   const ref = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
   // A chat waiting for an answer can be stopped too.
@@ -946,7 +1025,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   const [closed, setClosed] = useState(false);
   const menu = closed ? null : suggest(commands, text, caret);
   const edited = () => {
-    setText(ref.current!.value);
+    edit({ text: ref.current!.value });
     setCaret(ref.current!.selectionStart);
     setLit(0);
     setClosed(false);
@@ -965,15 +1044,17 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [text]);
 
+  // The upload may finish after this screen is gone (another chat was opened), so it writes to the draft, not to a
+  // state of this screen.
   const attach = (files: FileList | null) => {
     for (const file of files ?? []) {
       const key = crypto.randomUUID();
-      setUploads((u) => [...u, { key, name: file.name }]);
+      edit({ uploads: [...draftOf(draftId).uploads, { key, name: file.name }] });
       uploadFile(file)
-        .then((ref) => setUploads((u) => u.map((x) => (x.key === key ? { ...x, ref } : x))))
+        .then((ref) => edit({ uploads: draftOf(draftId).uploads.map((x) => (x.key === key ? { ...x, ref } : x)) }))
         .catch((err) => {
           alert(err.message);
-          setUploads((u) => u.filter((x) => x.key !== key));
+          edit({ uploads: draftOf(draftId).uploads.filter((x) => x.key !== key) });
         });
     }
   };
@@ -981,40 +1062,49 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
   const submit = async () => {
     if (!ready) return;
     const body = { text: text.trim(), files: uploads.map((u) => u.ref!.id) };
-    setSending(true);
+    flying.add(draftId);
+    tellFlight();
     try {
+      let id: string | undefined;
       if (chat) await sendMessage(chat.id, body);
       else
-        onCreated?.(
-          (
-            await createChat({
-              ...body,
-              access,
-              botId: pickedBot,
-              // Name the model once one (or a level) is picked; until then the chat starts on the server's default,
-              // even when the list could not be loaded.
-              ...(picked || pickedReasoning ? { model, reasoning: pickedReasoning } : {}),
-            })
-          ).id,
-        );
-      setText('');
-      setUploads([]);
+        id = (
+          await createChat({
+            ...body,
+            access,
+            botId: draft.botId,
+            // Name the model once one (or a level) is picked; until then the chat starts on the server's default,
+            // even when the list could not be loaded.
+            ...(draft.model || draft.reasoning ? { model, reasoning: draft.reasoning } : {}),
+          })
+        ).id;
+      // The server took the message. Take its words and files out of the box, and keep what was typed or attached
+      // while the request was in flight: that belongs to the next message. For a new chat, the next message goes to
+      // the chat that was just made, not to a second unsent one.
+      clearSentDraft(draftId, body);
+      if (id) {
+        const rest = draftOf(draftId);
+        if (hasContent(rest)) editDraft(id, { text: rest.text, uploads: rest.uploads });
+        dropDraft(draftId);
+        onCreated?.(id, draftId);
+      }
     } catch (err) {
       alert((err as Error).message);
     } finally {
-      setSending(false);
+      flying.delete(draftId);
+      tellFlight();
     }
   };
 
   // The server refuses a level the model does not have, so a new model without it goes back to its own default.
   const chooseModel = (id: string) => {
     if (chat) return void setModel(chat.id, id).catch((err) => alert(err.message));
-    setPicked(id);
-    if (!(models?.models.find((m) => m.id === id)?.levels ?? []).includes(pickedReasoning)) setPickedReasoning('');
+    const keepsReasoning = (models?.models.find((m) => m.id === id)?.levels ?? []).includes(draft.reasoning ?? '');
+    edit({ model: id, reasoning: keepsReasoning ? draft.reasoning : '' });
   };
   const chooseReasoning = (level: string) => {
     if (chat) return void setReasoning(chat.id, level).catch((err) => alert(err.message));
-    setPickedReasoning(level);
+    edit({ reasoning: level });
   };
 
   return (
@@ -1039,7 +1129,7 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
               <button
                 type="button"
                 aria-label={`Remove ${u.name}`}
-                onClick={() => setUploads((x) => x.filter((y) => y.key !== u.key))}
+                onClick={() => edit({ uploads: uploads.filter((y) => y.key !== u.key) })}
                 className="grid size-5 place-items-center rounded hover:bg-background/60"
               >
                 <X className="size-3" />
@@ -1093,10 +1183,14 @@ export function Composer({ chat, onCreated }: { chat?: Chat; onCreated?: (id: st
           >
             <Paperclip className="size-4.5" />
           </button>
-          {bots.length > 0 && <BotPill bots={bots} value={botId} onChange={chat ? undefined : setPickedBot} />}
+          {bots.length > 0 && (
+            <BotPill bots={bots} value={botId} onChange={chat ? undefined : (id) => edit({ botId: id })} />
+          )}
           <AccessPill
             access={access}
-            onChange={(a) => (chat ? void setAccess(chat.id, a).catch((err) => alert(err.message)) : setNewAccess(a))}
+            onChange={(a) =>
+              chat ? void setAccess(chat.id, a).catch((err) => alert(err.message)) : edit({ access: a })
+            }
           />
           {/* The model and its level stay together on one line, which is their own line on phones. */}
           {models && (
