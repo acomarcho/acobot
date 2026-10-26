@@ -45,6 +45,8 @@ export const chats = sqliteTable('chats', {
   model: text('model').notNull().default(''),
   // The model's reasoning level, or '' for its own default.
   reasoning: text('reasoning').notNull().default(''),
+  // What the model's latest call took: what it read plus what it wrote. Empty until it answers once.
+  contextUsed: integer('context_used'),
   status: text('status').$type<Status>().notNull(),
   // When the status last changed, so the list can show how long a chat has been working or waiting.
   statusAt: integer('status_at').notNull().default(0),

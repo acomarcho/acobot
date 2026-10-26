@@ -10,7 +10,9 @@ type Form = Extract<Item, { kind: 'form' }>;
 export type Out =
   | { type: 'item'; item: Item; save: boolean }
   | { type: 'delta'; itemId: string; text: string }
-  | { type: 'status'; status: Status };
+  | { type: 'status'; status: Status }
+  // How many tokens the model's latest call took.
+  | { type: 'usage'; used: number };
 
 // Items are shown in `at` order, so no two may share a time. This clock never repeats and never goes back.
 let last = 0;
@@ -129,6 +131,18 @@ export function createTranslator(known: Item[] = []) {
             text: `Could not sum up the chat: ${d.error?.message ?? 'unknown error'}`,
           }),
         ];
+
+      // What one call took, the way a context window counts it: what it read, fresh or cached, plus what it wrote.
+      // These are the call's own tokens; `session.usage.updated` is the whole session added up, which is not this.
+      case 'session.step.ended': {
+        const t = d.tokens;
+        return [
+          {
+            type: 'usage',
+            used: t.input + t.output + t.reasoning + t.cache.read + t.cache.write,
+          },
+        ];
+      }
 
       case 'session.tool.input.started':
         return tool(d.id, { name: d.name });

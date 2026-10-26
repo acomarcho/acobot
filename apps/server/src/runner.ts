@@ -139,6 +139,8 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
         hub.toChat(chatId, { type: 'item', chatId, item: out.item });
       }
       if (out.type === 'status') setStatus(chatId, out.status);
+      // Not `touch`: a call ending is not news for the chat list's order.
+      if (out.type === 'usage') setChat(chatId, { contextUsed: out.used }, false);
     }
   }
 
@@ -316,7 +318,14 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       const [list, fallback] = await Promise.all([client().model.list({}), client().model.default({})]);
       const models = list.data
         .filter(shown)
-        .map((m) => ({ id: idOf(m), name: m.name, group: groupOf(m)!, levels: m.variants.map((v) => v.id) }))
+        .map((m) => ({
+          id: idOf(m),
+          name: m.name,
+          group: groupOf(m)!,
+          levels: m.variants.map((v) => v.id),
+          // What the model keeps in view, which the bar under the last message fills.
+          context: m.limit.context,
+        }))
         // In GROUPS order; by name inside each.
         .sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.name.localeCompare(b.name));
       const listed = (id?: string | null) => !!id && models.some((m) => m.id === id);
