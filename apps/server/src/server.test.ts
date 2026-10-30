@@ -523,16 +523,30 @@ test('a subagent asking for approval shows a card in its chat, and the answer go
   expect((await post(`/api/chats/${chat.id}/asks/per_nope`, { decision: 'once' })).status).toBe(404);
 });
 
-test('the model list has the OpenCode Go, Refuseless, Experiential Labs and free models only, and new chats start on the default', async () => {
+test('the model list has the OpenCode Go, DeepSeek, Refuseless, Experiential Labs and free models only, and new chats start on the default', async () => {
   const { base } = await boot(fakeOpencode('chat').oc);
   const { models, default: fallback } = (await (await fetch(base + '/api/models')).json()) as Models;
   // OpenCode's free ones. Some OpenAI image models also claim a cost of 0, and must not show up.
   const free = MODELS.list.filter((m) => m.providerID === 'opencode' && m.cost.every((c) => !c.input && !c.output));
-  const picked = MODELS.list.filter((m) => ['opencode-go', 'refuseless', 'explabs'].includes(m.providerID));
+  const picked = MODELS.list.filter((m) => ['opencode-go', 'deepseek', 'refuseless', 'explabs'].includes(m.providerID));
   expect(models.length).toBe(new Set([...free, ...picked]).size);
   expect(models.some((m) => m.id.startsWith('openai/'))).toBe(false);
-  // Go first, then Refuseless, then Experiential Labs, then free.
-  expect([...new Set(models.map((m) => m.group))]).toEqual(['OpenCode Go', 'Refuseless', 'Experiential Labs', 'Free']);
+  // Go first, then DeepSeek, then Refuseless, then Experiential Labs, then free.
+  expect([...new Set(models.map((m) => m.group))]).toEqual([
+    'OpenCode Go',
+    'DeepSeek',
+    'Refuseless',
+    'Experiential Labs',
+    'Free',
+  ]);
+  // DeepSeek's own API, with the levels and the 1M window its API reports.
+  expect(models.find((m) => m.id === 'deepseek/deepseek-v4-pro')).toEqual({
+    id: 'deepseek/deepseek-v4-pro',
+    name: 'DeepSeek V4 Pro',
+    group: 'DeepSeek',
+    levels: ['none', 'low', 'high', 'max'],
+    context: 1_048_576,
+  });
   expect(models.find((m) => m.id === 'refuseless/glm-5.3-abliterated')).toEqual({
     id: 'refuseless/glm-5.3-abliterated',
     name: 'glm-5.3-abliterated',
@@ -702,7 +716,7 @@ test('switching model keeps a reasoning level the new model has, and drops one i
   expect(fake.calls.switchModel[1].model).toEqual({ providerID: 'opencode-go', id: 'kimi-k3' });
 });
 
-test('a new chat gets a title written by DeepSeek V4.1 Flash from its first message', async () => {
+test('a new chat gets a title written by its own model from its first message', async () => {
   const fake = fakeOpencode('chat');
   const { base, post } = await boot(fake.oc);
   const b = await browser(base);
@@ -711,7 +725,7 @@ test('a new chat gets a title written by DeepSeek V4.1 Flash from its first mess
   expect(chat.title).toBe('say hi');
   await until(() => b.chats.get(chat.id)?.title === 'Saying Hi');
   expect(fake.calls.generate).toHaveLength(1);
-  expect(fake.calls.generate[0].model).toEqual({ providerID: 'opencode-go', id: 'deepseek-v4.1-flash' });
+  expect(fake.calls.generate[0].model).toEqual({ providerID: 'opencode-go', id: 'kimi-k3.1-pro' });
   expect(fake.calls.generate[0].prompt).toContain('User: say hi');
 });
 
@@ -741,6 +755,10 @@ test('Regenerate title writes it again from the first 5 messages only', async ()
   expect(prompt).not.toContain('msg 6');
   expect(prompt).not.toContain('Switched');
   expect((await post('/api/chats/nope/title', {})).status).toBe(404);
+  // A chat from before models could be picked has none, so OpenCode's default writes its title.
+  db.update(chats).set({ model: '' }).where(eq(chats.id, chat.id)).run();
+  await post(`/api/chats/${chat.id}/title`, {});
+  expect(fake.calls.generate.at(-1).model).toBeUndefined();
 });
 
 test('when no title can be written the chat keeps its first line', async () => {

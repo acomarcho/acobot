@@ -60,6 +60,7 @@ type ModelInfo = Awaited<ReturnType<Oc['client']['model']['list']>>['data'][numb
 // Others (like models from an OpenAI login) stay out; some of those claim a cost of 0 only because their price is unknown.
 const PROVIDERS: Record<string, string> = {
   'opencode-go': 'OpenCode Go',
+  deepseek: 'DeepSeek',
   refuseless: 'Refuseless',
   explabs: 'Experiential Labs',
 };
@@ -83,8 +84,7 @@ export function levelOf(model: Model, wanted: unknown): string | undefined {
   return typeof wanted === 'string' && model.levels.includes(wanted) ? wanted : undefined;
 }
 
-// Chat titles are written by this model, from the first few messages.
-const TITLE_MODEL = 'opencode-go/deepseek-v4.1-flash';
+// Chat titles are written from the first few messages.
 const TITLE_MESSAGES = 5;
 // Each message is cut to this many characters in the prompt, so a long paste does not cost much.
 const TITLE_MESSAGE_CHARS = 1000;
@@ -275,8 +275,11 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  // Asks the title model for a title from the first messages, and saves it. A blank answer keeps the old title.
+  // Asks the chat's own model for a title from the first messages, and saves it, so titles work on any provider the
+  // chat itself works on. Chats from before models could be picked have none, and get OpenCode's default.
+  // A blank answer keeps the old title.
   async function retitle(chatId: string) {
+    const model = row(chatId)?.model;
     const messages = loadItems(db, chatId)
       .filter((i) => i.kind === 'message')
       .slice(0, TITLE_MESSAGES)
@@ -286,7 +289,7 @@ export function createRunner(db: Db, hub: Hub, files: Files, bots: Bots, opts: {
       });
     const { text } = await client().generate.text({
       prompt: `Write a short title, at most 6 words, for the chat below. Answer with the title only.\n\n${messages.join('\n\n')}`,
-      model: refOf(TITLE_MODEL),
+      ...(model && { model: refOf(model) }),
     });
     // Models sometimes wrap the title in quotes or add lines after it.
     const title = text
