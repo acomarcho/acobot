@@ -4837,6 +4837,78 @@
         "context": 1048576,
         "output": 393216
       }
+    },
+    {
+      "id": "deepseek-flash",
+      "modelID": "deepseek-flash",
+      "providerID": "deepseek",
+      "name": "DeepSeek V4.1 Flash 1017",
+      "cost": [
+        {
+          "input": 0.15,
+          "output": 0.6,
+          "cache": {
+            "read": 0.003,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "limit": {
+        "context": 1048576,
+        "output": 393216
+      },
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
+    },
+    {
+      "id": "deepseek-v4-pro",
+      "modelID": "deepseek-v4-pro",
+      "providerID": "deepseek",
+      "name": "DeepSeek V4 Pro",
+      "cost": [
+        {
+          "input": 0.66,
+          "output": 1.98,
+          "cache": {
+            "read": 0.022,
+            "write": 0
+          }
+        }
+      ],
+      "enabled": true,
+      "status": "active",
+      "limit": {
+        "context": 1048576,
+        "output": 393216
+      },
+      "variants": [
+        {
+          "id": "none"
+        },
+        {
+          "id": "low"
+        },
+        {
+          "id": "high"
+        },
+        {
+          "id": "max"
+        }
+      ]
     }
   ],
   "default": {
